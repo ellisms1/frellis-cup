@@ -601,20 +601,32 @@ function statusPillTone(status, match) {
 
 function TournamentHeaderMark() {
   return (
-    <div className="flex justify-center items-center w-full px-4 overflow-hidden">
-      <div className="text-center max-w-full">
+    <div className="w-full flex justify-center items-center px-4 text-center">
+      <div className="max-w-full">
         <div
-          className="text-[#c8a96a] uppercase font-extrabold leading-tight
-                     text-[20px] sm:text-[28px] md:text-[36px]
-                     tracking-[0.18em] sm:tracking-[0.22em]"
+          className="
+            text-[#c8a96a]
+            uppercase
+            font-extrabold
+            leading-tight
+            tracking-[0.18em]
+            text-[40px]      /* mobile */
+            sm:text-[60px]   /* small screens */
+            md:text-[72px]   /* desktop */
+          "
         >
           The Frellis Cup
         </div>
 
         <div
-          className="text-[#c8a96a]/80 uppercase mt-2
-                     text-[10px] sm:text-[12px]
-                     tracking-[0.18em] sm:tracking-[0.25em]"
+          className="
+            text-[#c8a96a]/80
+            uppercase
+            mt-3
+            tracking-[0.22em]
+            text-[12px]
+            sm:text-[14px]
+          "
         >
           Arizona Desert Match Play • Est. 2023
         </div>
