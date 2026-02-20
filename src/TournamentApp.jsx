@@ -1025,7 +1025,7 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
   })();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-zinc-950 text-white overflow-x-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-orange-400/15 blur-3xl" />
         <div className="absolute top-24 right-0 w-[34rem] h-[34rem] rounded-full bg-fuchsia-500/10 blur-3xl" />
@@ -1081,14 +1081,14 @@ function HomePage({
         left={<TournamentHeaderMark />}
         right={
           <>
-            <Button variant="ghost" onClick={onOpenBroadcast} className="hidden md:inline-flex">
+            <Button variant="ghost" onClick={onOpenBroadcast}>
               <span className="inline-flex items-center gap-2">
                 <Tv className="w-4 h-4" />
                 Broadcast
               </span>
             </Button>
             {isAdmin ? (
-              <Button variant="ghost" onClick={onOpenAdminPage} className="hidden md:inline-flex">
+              <Button variant="ghost" onClick={onOpenAdminPage}>
                 <span className="inline-flex items-center gap-2">
                   <Crown className="w-4 h-4" />
                   Admin
