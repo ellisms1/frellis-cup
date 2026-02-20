@@ -5,6 +5,14 @@ import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firesto
 import { db } from "./firebase";
 
 import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+
+import {
   Trophy,
   Users,
   Flag,
@@ -595,15 +603,19 @@ function TournamentHeaderMark() {
   return (
     <div className="flex justify-center items-center w-full px-4 overflow-hidden">
       <div className="text-center max-w-full">
-        <div className="text-[#c8a96a] uppercase font-extrabold leading-tight
-                        text-[20px] sm:text-[28px] md:text-[36px]
-                        tracking-[0.18em] sm:tracking-[0.22em]">
+        <div
+          className="text-[#c8a96a] uppercase font-extrabold leading-tight
+                     text-[20px] sm:text-[28px] md:text-[36px]
+                     tracking-[0.18em] sm:tracking-[0.22em]"
+        >
           The Frellis Cup
         </div>
 
-        <div className="text-[#c8a96a]/80 uppercase mt-2
-                        text-[10px] sm:text-[12px]
-                        tracking-[0.18em] sm:tracking-[0.25em]">
+        <div
+          className="text-[#c8a96a]/80 uppercase mt-2
+                     text-[10px] sm:text-[12px]
+                     tracking-[0.18em] sm:tracking-[0.25em]"
+        >
           Arizona Desert Match Play • Est. 2023
         </div>
       </div>
@@ -651,6 +663,60 @@ function Modal({ open, onClose, title, children }) {
         </motion.div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+/** Sign-in modal (email/password) */
+function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setPassword("");
+    }
+  }, [open]);
+
+  return (
+    <Modal open={open} onClose={onClose} title="Sign in">
+      <div className="space-y-3">
+        <input
+          className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+          placeholder="Email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+          placeholder="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {error ? (
+          <div className="text-xs text-rose-200 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="flex gap-2 pt-2">
+          <Button className="flex-1" disabled={loading} onClick={() => onSignIn(email, password)}>
+            Sign in
+          </Button>
+          <Button className="flex-1" variant="ghost" disabled={loading} onClick={() => onSignUp(email, password)}>
+            Sign up
+          </Button>
+        </div>
+
+        <div className="text-[11px] text-white/60 leading-relaxed">
+          Public viewing is always available. Signing in enables player claim + score entry.
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -738,8 +804,54 @@ function HoleStrip({ mc }) {
 // - fbUser: Firebase user object or null
 // -----------------------
 export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUser = null }) {
-  const userId = fbUser?.uid ?? null; // null = public viewer
-  const signedInLabel = fbUser?.email ?? "Public Viewer";
+  const auth = getAuth();
+
+  // If App.jsx passes fbUser, use it. Otherwise, listen locally.
+  const [localUser, setLocalUser] = useState(null);
+  const effectiveUser = fbUser ?? localUser;
+
+  const userId = effectiveUser?.uid ?? null; // null = public viewer
+  const signedInLabel = effectiveUser?.email ?? "Public Viewer";
+
+  // auth modal state
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    if (fbUser) return; // parent controls auth
+    return onAuthStateChanged(auth, (u) => setLocalUser(u));
+  }, [auth, fbUser]);
+
+  async function handleSignIn(email, password) {
+    try {
+      setAuthLoading(true);
+      setAuthError("");
+      await signInWithEmailAndPassword(auth, email, password);
+      setAuthOpen(false);
+    } catch (e) {
+      setAuthError(e?.message || "Sign in failed.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleSignUp(email, password) {
+    try {
+      setAuthLoading(true);
+      setAuthError("");
+      await createUserWithEmailAndPassword(auth, email, password);
+      setAuthOpen(false);
+    } catch (e) {
+      setAuthError(e?.message || "Sign up failed.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleSignOut() {
+    await signOut(auth);
+  }
 
   // Store Firestore pieces separately then assemble
   const [base, setBase] = useState(null);
@@ -943,6 +1055,9 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
           onOpenMatch={(matchId) => setRoute({ name: "match", matchId })}
           onOpenBroadcast={() => setRoute({ name: "broadcast" })}
           onOpenClaim={() => setRoute({ name: "claim" })}
+          onOpenAuth={() => setAuthOpen(true)}
+          onSignOut={handleSignOut}
+          authedUser={effectiveUser}
         />
       );
     }
@@ -1029,7 +1144,7 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
   })();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white overflow-x-hidden flex flex-col">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-orange-400/15 blur-3xl" />
         <div className="absolute top-24 right-0 w-[34rem] h-[34rem] rounded-full bg-fuchsia-500/10 blur-3xl" />
@@ -1038,25 +1153,42 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
       </div>
 
       <style>{`
-  html, body, #root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
+        html, body, #root {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+        }
 
-  /* Prevent any child from forcing wider-than-screen layouts */
-  * {
-    box-sizing: border-box;
-  }
+        * { box-sizing: border-box; }
 
-  /* Helps iOS avoid accidental horizontal “rubber-band” */
-  body {
-    position: relative;
-  }
+        body { position: relative; }
+      `}</style>
 
-`}</style>
+      <div className="relative flex-1">{pageContent}</div>
 
-      <div className="relative">{pageContent}</div>
+      {/* Admin tools footer (admins only) */}
+      {isAdmin ? (
+        <div className="sticky bottom-0 z-30 backdrop-blur bg-zinc-950/70 border-t border-white/10">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRoute({ name: "admin" })}>
+              <span className="inline-flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Admin Tools
+              </span>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Sign-in modal */}
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        loading={authLoading}
+        error={authError}
+      />
     </div>
   );
 }
@@ -1079,6 +1211,9 @@ function HomePage({
   onOpenMatch,
   onOpenBroadcast,
   onOpenClaim,
+  onOpenAuth,
+  onSignOut,
+  authedUser,
 }) {
   const leader =
     totals.totalJC === totals.totalSG ? "Tied" : totals.totalJC > totals.totalSG ? TEAM_ABBR.JC : TEAM_ABBR.SG;
@@ -1101,20 +1236,27 @@ function HomePage({
         right={
           <>
             <Button variant="ghost" onClick={onOpenBroadcast}>
-  <span className="inline-flex items-center gap-2">
-    <Tv className="w-4 h-4" />
-    <span className="hidden sm:inline">Broadcast</span>
-  </span>
-</Button>
+              <span className="inline-flex items-center gap-2">
+                <Tv className="w-4 h-4" />
+                <span className="hidden sm:inline">Broadcast</span>
+              </span>
+            </Button>
 
-{isAdmin ? (
-  <Button variant="ghost" onClick={onOpenAdminPage}>
-    <span className="inline-flex items-center gap-2">
-      <Crown className="w-4 h-4" />
-      <span className="hidden sm:inline">Admin</span>
-    </span>
-  </Button>
-) : null}
+            {authedUser ? (
+              <Button variant="ghost" onClick={onSignOut}>
+                <span className="inline-flex items-center gap-2">
+                  <UserCheck className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </span>
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={onOpenAuth}>
+                <span className="inline-flex items-center gap-2">
+                  <Unlock className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </span>
+              </Button>
+            )}
           </>
         }
       />
@@ -1185,7 +1327,7 @@ function HomePage({
                 )
               ) : (
                 <div className="text-white/60 text-xs">
-                  Public view is enabled. Sign in to claim a player + enter scores.
+                  Public view is enabled. Use the <b>Sign in</b> button in the top-right to claim a player + enter scores.
                 </div>
               )}
             </div>
@@ -1206,7 +1348,7 @@ function HomePage({
             {!userId ? (
               <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
                 <div className="text-white/70 text-sm">Public Viewer Mode</div>
-                <div className="text-white/60 text-xs mt-1">Sign in to claim your identity and enter scores.</div>
+                <div className="text-white/60 text-xs mt-1">Sign in (top-right) to claim your identity and enter scores.</div>
                 <div className="mt-3">
                   <Button variant="ghost" onClick={onOpenMatches} className="w-full">
                     Browse Matches
