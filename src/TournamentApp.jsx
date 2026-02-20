@@ -46,12 +46,109 @@ const DAY_DATES = {
   3: "March 7, 2026",
 };
 
-// Weather (Phoenix) — snapshot
-const PHX_WEATHER_SNAPSHOT = {
-  condition: "Cloudy",
-  tempF: 56,
-  updatedNote: "Current Conditions In Phoenix (Snapshot)",
-};
+// -----------------------
+// Live Weather (Phoenix) — Open-Meteo (no API key)
+// -----------------------
+const PHX_LAT = 33.4484;
+const PHX_LON = -112.074;
+
+function weatherCodeToText(code) {
+  // Open-Meteo weather codes
+  // https://open-meteo.com/en/docs (Weather interpretation codes) :contentReference[oaicite:2]{index=2}
+  const c = Number(code);
+  if (!Number.isFinite(c)) return "—";
+
+  if (c === 0) return "Clear";
+  if (c === 1) return "Mostly Clear";
+  if (c === 2) return "Partly Cloudy";
+  if (c === 3) return "Overcast";
+
+  if (c === 45 || c === 48) return "Fog";
+
+  if (c === 51 || c === 53 || c === 55) return "Drizzle";
+  if (c === 56 || c === 57) return "Freezing Drizzle";
+
+  if (c === 61 || c === 63 || c === 65) return "Rain";
+  if (c === 66 || c === 67) return "Freezing Rain";
+
+  if (c === 71 || c === 73 || c === 75) return "Snow";
+  if (c === 77) return "Snow Grains";
+
+  if (c === 80 || c === 81 || c === 82) return "Rain Showers";
+  if (c === 85 || c === 86) return "Snow Showers";
+
+  if (c === 95) return "Thunderstorm";
+  if (c === 96 || c === 99) return "Thunderstorm (Hail)";
+
+  return "—";
+}
+
+function usePhoenixWeather() {
+  const [wx, setWx] = React.useState({
+    loading: true,
+    tempF: null,
+    condition: "—",
+    updatedNote: "Loading live Phoenix weather…",
+    error: null,
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function fetchWx() {
+      try {
+        // Open-Meteo "current" variables. No key required. :contentReference[oaicite:3]{index=3}
+        const url =
+          `https://api.open-meteo.com/v1/forecast` +
+          `?latitude=${PHX_LAT}` +
+          `&longitude=${PHX_LON}` +
+          `&current=temperature_2m,weather_code` +
+          `&temperature_unit=fahrenheit` +
+          `&timezone=America%2FNew_York`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Weather HTTP ${res.status}`);
+        const data = await res.json();
+
+        const temp = data?.current?.temperature_2m ?? null;
+        const code = data?.current?.weather_code ?? null;
+
+        const updatedTime = data?.current?.time
+          ? new Date(data.current.time)
+          : new Date();
+
+        if (!cancelled) {
+          setWx({
+            loading: false,
+            tempF: Number.isFinite(Number(temp)) ? Math.round(Number(temp)) : null,
+            condition: weatherCodeToText(code),
+            updatedNote: `Live Phoenix Conditions • Updated ${updatedTime.toLocaleString()}`,
+            error: null,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setWx((prev) => ({
+            ...prev,
+            loading: false,
+            error: e?.message || String(e),
+            updatedNote: "Live Phoenix Conditions (unavailable)",
+          }));
+        }
+      }
+    }
+
+    fetchWx();
+    const id = setInterval(fetchWx, 10 * 60 * 1000); // refresh every 10 min
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  return wx;
+}
 
 const TEAM = {
   JC: "Jumping Chollas",
@@ -1227,6 +1324,7 @@ function HomePage({
   onSignOut,
   authedUser,
 }) {
+  const phxWx = usePhoenixWeather();
   const leader =
     totals.totalJC === totals.totalSG ? "Tied" : totals.totalJC > totals.totalSG ? TEAM_ABBR.JC : TEAM_ABBR.SG;
 
@@ -1312,10 +1410,15 @@ function HomePage({
                 {tournament.courses?.[activeDay]?.name} • {tournament.courses?.[activeDay]?.city}
               </div>
               <div className="mt-3 text-white/80 text-sm">
-                <span className="text-white/60">Weather:</span> {PHX_WEATHER_SNAPSHOT.condition} •{" "}
-                {PHX_WEATHER_SNAPSHOT.tempF}°F
-              </div>
-              <div className="text-white/50 text-[11px] mt-1">{PHX_WEATHER_SNAPSHOT.updatedNote}</div>
+  <span className="text-white/60">Weather:</span>{" "}
+  {phxWx.condition}
+  {" • "}
+  {phxWx.tempF == null ? "—" : `${phxWx.tempF}°F`}
+</div>
+<div className="text-white/50 text-[11px] mt-1">
+  {phxWx.updatedNote}
+</div>
+
             </div>
 
             <div className="mt-4">
