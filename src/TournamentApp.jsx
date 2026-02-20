@@ -1935,15 +1935,21 @@ function MatchPage({ tournament, match, day, playersById, claimedPlayerId, isAdm
   const [activeHole, setActiveHole] = useState(1);
 
   const computed = useMemo(() => {
-    const mh = computeMatchHoles(match, holes, playersById);
-    const status = matchStatusFromHoles(
-      mh.map((x) => ({ played: x.played, winnerSideId: x.winnerSideId })),
-      match.sideA.id,
-      match.sideB.id
-    );
-    const pts = pointsForFinalMatch(status, match.sideA, match.sideB);
-    return { holes: mh, status, points: pts };
-  }, [match, holes, playersById]);
+  const mh = computeMatchHoles(match, holes, playersById);
+
+  const status =
+    match.format === "SCRAMBLE_STABLEFORD"
+      ? stablefordTotalsStatusFromHoles(mh, match.sideA.id, match.sideB.id)
+      : matchStatusFromHoles(
+          mh.map((x) => ({ played: x.played, winnerSideId: x.winnerSideId })),
+          match.sideA.id,
+          match.sideB.id
+        );
+
+  const pts = pointsForFinalMatch(status, match.sideA, match.sideB);
+
+  return { holes: mh, status, points: pts };
+}, [match, holes, playersById]);
 
   const me = claimedPlayerId ? playersById[claimedPlayerId] : null;
   const isParticipant = !!me && (match.sideA.playerIds.includes(me.id) || match.sideB.playerIds.includes(me.id));
