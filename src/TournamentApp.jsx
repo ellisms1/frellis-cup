@@ -593,9 +593,12 @@ function statusPillTone(status, match) {
 
 function TournamentHeaderMark() {
   return (
-    <div className="flex items-center gap-4">
-      <div>
-        <div className="frellisScript leading-none">The Frellis Cup</div>
+    <div className="flex justify-center w-full">
+      <div className="text-center">
+        <div className="text-[#c8a96a] uppercase tracking-[0.22em] font-extrabold leading-none text-[24px] sm:text-[30px] md:text-[36px]">
+          The Frellis Cup
+        </div>
+
         <div className="text-[#c8a96a]/80 text-[12px] tracking-[0.25em] uppercase mt-2">
           Arizona Desert Match Play • Est. 2023
         </div>
@@ -1031,20 +1034,7 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
       </div>
 
       <style>{`
-        .frellisScript {
-          font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive;
-          font-weight: 700;
-          font-size: 42px;
-          letter-spacing: 0.02em;
-          color: #c8a96a;
-          text-shadow:
-            0 2px 0 rgba(0,0,0,0.35),
-            0 8px 24px rgba(0,0,0,0.45);
-        }
-
-        @media (min-width: 768px) {
-          .frellisScript { font-size: 56px; }
-        }
+        
       `}</style>
 
       <div className="relative">{pageContent}</div>
