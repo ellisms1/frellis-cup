@@ -593,13 +593,17 @@ function statusPillTone(status, match) {
 
 function TournamentHeaderMark() {
   return (
-    <div className="flex justify-center w-full">
-      <div className="text-center">
-        <div className="text-[#c8a96a] uppercase tracking-[0.22em] font-extrabold leading-none text-[24px] sm:text-[30px] md:text-[36px]">
+    <div className="flex justify-center items-center w-full px-4 overflow-hidden">
+      <div className="text-center max-w-full">
+        <div className="text-[#c8a96a] uppercase font-extrabold leading-tight
+                        text-[20px] sm:text-[28px] md:text-[36px]
+                        tracking-[0.18em] sm:tracking-[0.22em]">
           The Frellis Cup
         </div>
 
-        <div className="text-[#c8a96a]/80 text-[12px] tracking-[0.25em] uppercase mt-2">
+        <div className="text-[#c8a96a]/80 uppercase mt-2
+                        text-[10px] sm:text-[12px]
+                        tracking-[0.18em] sm:tracking-[0.25em]">
           Arizona Desert Match Play • Est. 2023
         </div>
       </div>
@@ -610,7 +614,7 @@ function TournamentHeaderMark() {
 function TopBar({ title, subtitle, left, right }) {
   return (
     <div className="sticky top-0 z-30 backdrop-blur bg-zinc-950/60 border-b border-white/10">
-      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           {left}
           <div>
@@ -618,7 +622,7 @@ function TopBar({ title, subtitle, left, right }) {
             {subtitle ? <div className="text-white/60 text-xs mt-0.5">{subtitle}</div> : null}
           </div>
         </div>
-        <div className="flex items-center gap-2">{right}</div>
+        <div className="flex items-center gap-2 flex-wrap justify-end">{right}</div>
       </div>
     </div>
   );
@@ -1034,8 +1038,23 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
       </div>
 
       <style>{`
-        
-      `}</style>
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Prevent any child from forcing wider-than-screen layouts */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Helps iOS avoid accidental horizontal “rubber-band” */
+  body {
+    position: relative;
+  }
+
+`}</style>
 
       <div className="relative">{pageContent}</div>
     </div>
@@ -1082,19 +1101,20 @@ function HomePage({
         right={
           <>
             <Button variant="ghost" onClick={onOpenBroadcast}>
-              <span className="inline-flex items-center gap-2">
-                <Tv className="w-4 h-4" />
-                Broadcast
-              </span>
-            </Button>
-            {isAdmin ? (
-              <Button variant="ghost" onClick={onOpenAdminPage}>
-                <span className="inline-flex items-center gap-2">
-                  <Crown className="w-4 h-4" />
-                  Admin
-                </span>
-              </Button>
-            ) : null}
+  <span className="inline-flex items-center gap-2">
+    <Tv className="w-4 h-4" />
+    <span className="hidden sm:inline">Broadcast</span>
+  </span>
+</Button>
+
+{isAdmin ? (
+  <Button variant="ghost" onClick={onOpenAdminPage}>
+    <span className="inline-flex items-center gap-2">
+      <Crown className="w-4 h-4" />
+      <span className="hidden sm:inline">Admin</span>
+    </span>
+  </Button>
+) : null}
           </>
         }
       />
