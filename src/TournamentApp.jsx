@@ -281,13 +281,60 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
   };
 }
 
+function stablefordTotalsStatusFromHoles(matchHoles, sideAId, sideBId) {
+  let aTotal = 0;
+  let bTotal = 0;
+  let played = 0;
+
+  for (const h of matchHoles) {
+    if (!h.played) continue;
+    if (h.details?.type !== "scramble") continue;
+
+    const aPts = h.details?.aPts;
+    const bPts = h.details?.bPts;
+    if (aPts == null || bPts == null) continue;
+
+    played += 1;
+    aTotal += aPts;
+    bTotal += bPts;
+  }
+
+  if (played === 0) {
+    return {
+      played: 0,
+      isFinal: false,
+      text: "—",
+      leaderSideId: null,
+      isTied: true,
+      aTotalPts: 0,
+      bTotalPts: 0,
+    };
+  }
+
+  const diff = aTotal - bTotal;
+  const leaderSideId = diff > 0 ? sideAId : diff < 0 ? sideBId : null;
+  const isTied = diff === 0;
+
+  return {
+    played,
+    isFinal: played === 18,
+    text: `${aTotal}–${bTotal}`, // 👈 show only running totals
+    leaderSideId,
+    isTied,
+    aTotalPts: aTotal,
+    bTotalPts: bTotal,
+  };
+}
+
 function pointsForFinalMatch(status, sideA, sideB) {
   if (!status.isFinal) return { [sideA.teamId]: 0, [sideB.teamId]: 0 };
-  if (status.text.includes("Tied")) return { [sideA.teamId]: 0.5, [sideB.teamId]: 0.5 };
+
+  if (status.isTied) return { [sideA.teamId]: 0.5, [sideB.teamId]: 0.5 };
 
   const winnerSideId = status.leaderSideId;
   const winnerTeam = winnerSideId === sideA.id ? sideA.teamId : sideB.teamId;
   const loserTeam = winnerTeam === sideA.teamId ? sideB.teamId : sideA.teamId;
+
   return { [winnerTeam]: 1, [loserTeam]: 0 };
 }
 
@@ -561,7 +608,10 @@ function computeTournamentTotals(tournament) {
 
     const matchCards = (d.matches || []).map((m) => {
       const mh = computeMatchHoles(m, holes, playersById);
-      const status = matchStatusFromHoles(
+      const status =
+  m.format === "SCRAMBLE_STABLEFORD"
+    ? stablefordTotalsStatusFromHoles(mh, m.sideA.id, m.sideB.id)
+    : matchStatusFromHoles(
         mh.map((x) => ({ played: x.played, winnerSideId: x.winnerSideId })),
         m.sideA.id,
         m.sideB.id
