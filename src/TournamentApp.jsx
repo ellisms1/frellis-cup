@@ -1423,8 +1423,8 @@ function HomePage({
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBlock label={TEAM_ABBR.JC} value={totals.totalJC.toFixed(1)} sub="Total Points" />
-          <StatBlock label={TEAM_ABBR.SG} value={totals.totalSG.toFixed(1)} sub="Total Points" />
+          <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} sub="Total Points" />
+          <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} sub="Total Points" />
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
 
@@ -2511,8 +2511,8 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch })
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBlock label={TEAM_ABBR.JC} value={totals.totalJC.toFixed(1)} sub="Overall" />
-          <StatBlock label={TEAM_ABBR.SG} value={totals.totalSG.toFixed(1)} sub="Overall" />
+          <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} sub="Overall" />
+          <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} sub="Overall" />
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
 
