@@ -962,7 +962,7 @@ function HoleStrip({ mc }) {
 // - tournamentId: string (e.g. "frellis-cup-2026")
 // - fbUser: Firebase user object or null
 // -----------------------
-export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUser = null }) {
+export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUser = null, isAdminUser = false, onOpenReseed }) {
   const auth = getAuth();
 
   // If App.jsx passes fbUser, use it. Otherwise, listen locally.
@@ -1200,24 +1200,23 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
     if (route.name === "home") {
       return (
         <HomePage
-          tournament={tournament}
-          totals={totals}
-          activeDay={activeDay}
-          setActiveDay={setActiveDay}
-          signedInLabel={signedInLabel}
-          userId={userId}
-          claimedPlayerId={claimedPlayerId}
-          playersById={playersById}
-          isAdmin={isAdmin}
-          onOpenAdminPage={() => setRoute({ name: "admin" })}
-          onOpenMatches={() => setRoute({ name: "matches" })}
-          onOpenMatch={(matchId) => setRoute({ name: "match", matchId })}
-          onOpenBroadcast={() => setRoute({ name: "broadcast" })}
-          onOpenClaim={() => setRoute({ name: "claim" })}
-          onOpenAuth={() => setAuthOpen(true)}
-          onSignOut={handleSignOut}
-          authedUser={effectiveUser}
-        />
+  tournament={tournament}
+  totals={totals}
+  activeDay={activeDay}
+  setActiveDay={setActiveDay}
+  signedInLabel={signedInLabel}
+  userId={userId}
+  claimedPlayerId={claimedPlayerId}
+  playersById={playersById}
+  isAdmin={isAdmin}
+  isAdminUser={isAdminUser}
+  onOpenReseed={onOpenReseed}
+  onOpenAdminPage={() => setRoute({ name: "admin" })}
+  onOpenMatches={() => setRoute({ name: "matches" })}
+  onOpenMatch={(matchId) => setRoute({ name: "match", matchId })}
+  onOpenBroadcast={() => setRoute({ name: "broadcast" })}
+  onOpenClaim={() => setRoute({ name: "claim" })}
+/>
       );
     }
 
@@ -1365,15 +1364,15 @@ function HomePage({
   claimedPlayerId,
   playersById,
   isAdmin,
+  isAdminUser,
+  onOpenReseed,
   onOpenAdminPage,
   onOpenMatches,
   onOpenMatch,
   onOpenBroadcast,
   onOpenClaim,
-  onOpenAuth,
-  onSignOut,
-  authedUser,
 }) {
+
   const phxWx = usePhoenixWeather();
   const leader =
     totals.totalJC === totals.totalSG ? "Tied" : totals.totalJC > totals.totalSG ? TEAM_ABBR.JC : TEAM_ABBR.SG;
@@ -1606,6 +1605,27 @@ function HomePage({
             </div>
           </Card>
         </div>
+
+                {/* Bottom admin actions (only visible when signed in + admin) */}
+        {isAdminUser ? (
+          <div className="mt-8">
+            <Card className="p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="ghost" onClick={onOpenAdminPage} className="w-full">
+                  Admin Tools
+                </Button>
+
+                <Button variant="danger" onClick={onOpenReseed} className="w-full">
+                  Reseed Firestore
+                </Button>
+              </div>
+
+              <div className="text-white/50 text-[11px] mt-3">
+                Reseed will overwrite players/days/matches (scores may be lost). Confirmation required.
+              </div>
+            </Card>
+          </div>
+        ) : null}
 
         <div className="mt-10" />
       </div>
