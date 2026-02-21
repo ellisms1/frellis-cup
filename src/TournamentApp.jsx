@@ -165,6 +165,13 @@ const TEAM_COLOR = {
   SG: "bg-yellow-400/20 text-yellow-100 border-yellow-300/30",
 };
 
+// Temporary weather snapshot (pre-live API)
+const PHX_WEATHER_SNAPSHOT = {
+  condition: "Sunny",
+  tempF: 74,
+  updatedNote: "Current Conditions In Phoenix",
+};
+
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // -----------------------
