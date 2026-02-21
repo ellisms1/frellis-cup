@@ -1,9 +1,10 @@
 // src/App.jsx
 import React from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
+import AuthGate from "./auth";
 import TournamentApp, { makeInitialTournament } from "./TournamentApp";
 import { seedTournament } from "./seedTournament";
 
@@ -21,9 +22,6 @@ export default function App() {
 
   const [seedBusy, setSeedBusy] = React.useState(false);
   const [seedMsg, setSeedMsg] = React.useState("");
-
-  // Admin panel UI
-  const [adminPanelOpen, setAdminPanelOpen] = React.useState(false);
 
   // Reseed protection UI
   const [reseedOpen, setReseedOpen] = React.useState(false);
@@ -78,6 +76,7 @@ export default function App() {
 
   // Admin detection (adminUsers/{uid})
   React.useEffect(() => {
+    // Signed-out = not admin
     if (!fbUser?.uid) {
       setIsAdmin(false);
       return;
@@ -85,6 +84,7 @@ export default function App() {
 
     const adminRef = doc(db, "adminUsers", fbUser.uid);
 
+    // Subscribe so it flips instantly when you add/remove admin doc
     const unsub = onSnapshot(
       adminRef,
       (snap) => {
@@ -99,6 +99,8 @@ export default function App() {
     return () => unsub();
   }, [fbUser?.uid]);
 
+  const isOwner = !!fbUser?.uid && !!tournamentMeta?.ownerUserId && tournamentMeta.ownerUserId === fbUser.uid;
+
   async function doSeed({ preserveClaims: keepClaims }) {
     try {
       setSeedBusy(true);
@@ -108,8 +110,10 @@ export default function App() {
         setSeedMsg("❌ You must be signed in to seed.");
         return;
       }
-      if (!isAdmin) {
-        setSeedMsg("❌ Only admins can seed/reseed Firestore.");
+
+      // IMPORTANT: owner-only gate (not just admin)
+      if (!isOwner) {
+        setSeedMsg("❌ Only the OWNER can seed/reseed Firestore.");
         return;
       }
 
@@ -126,14 +130,21 @@ export default function App() {
       }
 
       const tournament = makeInitialTournament();
+
+      // Store owner for display (admin privileges come from adminUsers/{uid})
       tournament.ownerUserId = fbUser.uid;
 
-      tournament.claims = keepClaims ? existingClaims || {} : {};
+      if (keepClaims) {
+        tournament.claims = existingClaims || {};
+      } else {
+        tournament.claims = {};
+      }
 
       await seedTournament(TOURNAMENT_ID, tournament);
 
       setSeedMsg(keepClaims ? "✅ Reseed successful (claims preserved)." : "✅ Reseed successful (claims cleared).");
 
+      // Recheck existence after seeding
       const snap = await getDoc(doc(db, "tournaments", TOURNAMENT_ID));
       setTournamentExists(snap.exists());
       if (snap.exists()) {
@@ -153,8 +164,10 @@ export default function App() {
       setSeedMsg("❌ You must be signed in to seed.");
       return;
     }
-    if (!isAdmin) {
-      setSeedMsg("❌ Only admins can seed/reseed Firestore.");
+
+    // IMPORTANT: owner-only gate (not just admin)
+    if (!isOwner) {
+      setSeedMsg("❌ Only the OWNER can seed/reseed Firestore.");
       return;
     }
 
@@ -181,101 +194,102 @@ export default function App() {
   const canConfirmReseed = reseedText.trim().toUpperCase() === "RESEED";
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    // Add bottom padding so the fixed bar doesn't cover content
+    <div style={{ padding: 16, paddingBottom: fbUser ? 110 : 16 }}>
       {/* Tournament app (public view allowed; score entry requires auth+claim inside) */}
       <TournamentApp tournamentId={TOURNAMENT_ID} fbUser={fbUser} />
 
-      {/* Small Admin button bottom-right (only for admins) */}
-      {isAdmin ? (
-        <button
-          onClick={() => setAdminPanelOpen(true)}
-          className="fixed bottom-4 right-4 z-[60] px-4 py-2 rounded-xl bg-white text-zinc-900 font-semibold shadow-lg active:scale-[0.99]"
-        >
-          Admin
-        </button>
-      ) : null}
-
-      {/* Admin panel (bottom sheet / modal) */}
-      {adminPanelOpen ? (
+      {/* Fixed bottom admin bar (only shows if signed in) */}
+      {fbUser ? (
         <div
-          className="fixed inset-0 z-[70]"
-          onClick={() => {
-            if (seedBusy) return;
-            setAdminPanelOpen(false);
+          style={{
+            position: "fixed",
+            left: 16,
+            right: 16,
+            bottom: 16,
+            zIndex: 9998,
+            maxWidth: 980,
+            margin: "0 auto",
           }}
         >
-          <div className="absolute inset-0 bg-black/60" />
           <div
-            className="absolute inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center p-0 md:p-6"
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              padding: 12,
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(10px)",
+              color: "white",
+              boxShadow: "0 18px 60px rgba(0,0,0,0.55)",
+            }}
           >
-            <div className="w-full md:max-w-2xl rounded-t-3xl md:rounded-3xl bg-zinc-950 border border-white/10 shadow-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-                <div className="text-white font-semibold">Admin Tools</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Admin Tools</div>
+              <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2, lineHeight: 1.35 }}>
+                Logged in as <b>{fbUser.email || fbUser.uid}</b>
+                {loadingTournament ? <> • Checking tournament…</> : tournamentExists ? <> • Tournament doc exists ✅</> : <> • Tournament doc missing ⚠️</>}
+                {tournamentMeta?.ownerUserId ? (
+                  <>
+                    {" "}
+                    • Owner:{" "}
+                    <span style={{ opacity: 0.9 }}>
+                      {tournamentMeta.ownerUserId === fbUser.uid ? "YOU" : tournamentMeta.ownerUserId}
+                    </span>
+                  </>
+                ) : null}
+                {isAdmin ? <> • You are admin ✅</> : <> • Not admin</>}
+                {isOwner ? <> • You are owner 👑</> : null}
+              </div>
+
+              {seedMsg ? <div style={{ fontSize: 12, marginTop: 6 }}>{seedMsg}</div> : null}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {/* Owner-only reseed button */}
+              {isOwner ? (
                 <button
-                  onClick={() => {
-                    if (seedBusy) return;
-                    setAdminPanelOpen(false);
+                  onClick={openSeedFlow}
+                  disabled={seedBusy}
+                  title="Owner-only: seed/reseed Firestore."
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "white",
+                    color: "#0b0b0f",
+                    cursor: seedBusy ? "not-allowed" : "pointer",
+                    fontWeight: 800,
                   }}
-                  className="text-white/70 hover:text-white"
                 >
-                  ✕
+                  {seedBusy ? "Seeding…" : tournamentExists ? "Reseed Firestore" : "Seed Firestore"}
                 </button>
-              </div>
+              ) : null}
 
-              <div className="p-5 space-y-4">
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                  <div className="text-white/80 text-sm">
-                    Logged in as <b>{fbUser?.email || fbUser?.uid || "—"}</b>
-                  </div>
-
-                  <div className="text-white/60 text-xs mt-1">
-                    {loadingTournament ? (
-                      <>Checking tournament…</>
-                    ) : tournamentExists ? (
-                      <>Tournament doc exists ✅</>
-                    ) : (
-                      <>Tournament doc missing ⚠️</>
-                    )}
-
-                    {tournamentMeta?.ownerUserId ? (
-                      <>
-                        {" "}
-                        • Owner:{" "}
-                        <span className="text-white/70">
-                          {tournamentMeta.ownerUserId === fbUser?.uid ? "YOU" : tournamentMeta.ownerUserId}
-                        </span>
-                      </>
-                    ) : null}
-
-                    {isAdmin ? <> • You are admin ✅</> : <> • Not admin</>}
-                  </div>
-
-                  {seedMsg ? <div className="text-white/70 text-xs mt-2">{seedMsg}</div> : null}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={openSeedFlow}
-                    disabled={seedBusy || !isAdmin}
-                    className="flex-1 px-4 py-2 rounded-xl bg-white text-zinc-900 font-semibold disabled:bg-white/30 disabled:text-zinc-900/60"
-                    title={!isAdmin ? "Only admins can seed/reseed Firestore." : "Seed tournament data into Firestore."}
-                  >
-                    {seedBusy ? "Seeding…" : tournamentExists ? "Reseed Firestore" : "Seed Firestore"}
-                  </button>
-
-                  {/* Sign-out is now handled by TournamentApp top-right button.
-                      Keeping this out of App.jsx so you don’t get duplicate sign-out UIs. */}
-                </div>
-
-                <div className="text-white/50 text-xs">
-                  Note: Sign-in / sign-out is controlled from the top-right button in the Tournament UI.
-                </div>
-              </div>
+              <button
+                onClick={() => signOut(auth)}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "transparent",
+                  color: "white",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </div>
-      ) : null}
+      ) : (
+        // If signed out, show your auth gate (you mentioned you’ve been polishing this already)
+        <AuthGate />
+      )}
 
       {/* Reseed confirmation modal */}
       {reseedOpen ? (
@@ -284,43 +298,71 @@ export default function App() {
             if (seedBusy) return;
             setReseedOpen(false);
           }}
-          className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[520px] bg-zinc-950 border border-white/10 rounded-2xl p-4 text-white shadow-2xl"
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              background: "#0b0b0f",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 16,
+              padding: 16,
+              color: "white",
+              boxShadow: "0 20px 80px rgba(0,0,0,0.5)",
+            }}
           >
-            <div className="font-extrabold text-base">Confirm Reseed</div>
-            <div className="text-xs text-white/70 mt-2 leading-relaxed">
-              This will overwrite tournament data in Firestore (players/days/matches reset to the seed).
-              Live score entries may be lost. To continue, type <b>RESEED</b>.
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Confirm Reseed</div>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 8, lineHeight: 1.4 }}>
+              This will overwrite tournament data in Firestore (players/days/matches reset to the seed). Live score entries may be
+              lost. To continue, type <b>RESEED</b>.
             </div>
 
-            <div className="mt-3">
+            <div style={{ marginTop: 12 }}>
               <input
                 value={reseedText}
                 onChange={(e) => setReseedText(e.target.value)}
                 placeholder='Type "RESEED" to confirm'
-                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white outline-none"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "white",
+                  outline: "none",
+                }}
                 disabled={seedBusy}
               />
             </div>
 
-            <label className="flex items-center gap-3 mt-3 text-xs text-white/80">
-              <input
-                type="checkbox"
-                checked={preserveClaims}
-                onChange={(e) => setPreserveClaims(e.target.checked)}
-                disabled={seedBusy}
-              />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 12, opacity: 0.9 }}>
+              <input type="checkbox" checked={preserveClaims} onChange={(e) => setPreserveClaims(e.target.checked)} disabled={seedBusy} />
               Preserve player claims (recommended)
             </label>
 
-            <div className="flex gap-2 mt-4 justify-end">
+            <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setReseedOpen(false)}
                 disabled={seedBusy}
-                className="px-4 py-2 rounded-xl border border-white/10 bg-transparent text-white disabled:opacity-50"
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "transparent",
+                  color: "white",
+                  cursor: seedBusy ? "not-allowed" : "pointer",
+                }}
               >
                 Cancel
               </button>
@@ -328,7 +370,15 @@ export default function App() {
               <button
                 onClick={confirmReseed}
                 disabled={seedBusy || !canConfirmReseed}
-                className="px-4 py-2 rounded-xl bg-white text-zinc-900 font-bold disabled:bg-white/20 disabled:text-white/70"
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: seedBusy || !canConfirmReseed ? "rgba(255,255,255,0.2)" : "white",
+                  color: seedBusy || !canConfirmReseed ? "rgba(255,255,255,0.7)" : "#0b0b0f",
+                  cursor: seedBusy || !canConfirmReseed ? "not-allowed" : "pointer",
+                  fontWeight: 800,
+                }}
                 title={!canConfirmReseed ? 'Type "RESEED" to enable' : "Proceed with reseed"}
               >
                 {seedBusy ? "Reseeding…" : "Yes, Reseed"}
