@@ -1372,8 +1372,6 @@ function HomePage({
   onOpenBroadcast,
   onOpenClaim,
 }) {
-
-  const phxWx = usePhoenixWeather();
   const leader =
     totals.totalJC === totals.totalSG ? "Tied" : totals.totalJC > totals.totalSG ? TEAM_ABBR.JC : TEAM_ABBR.SG;
 
@@ -1401,29 +1399,22 @@ function HomePage({
               </span>
             </Button>
 
-            {authedUser ? (
-              <Button variant="ghost" onClick={onSignOut}>
+            {isAdmin ? (
+              <Button variant="ghost" onClick={onOpenAdminPage}>
                 <span className="inline-flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  <Crown className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin</span>
                 </span>
               </Button>
-            ) : (
-              <Button variant="ghost" onClick={onOpenAuth}>
-                <span className="inline-flex items-center gap-2">
-                  <Unlock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign in</span>
-                </span>
-              </Button>
-            )}
+            ) : null}
           </>
         }
       />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} sub="Total Points" />
-          <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} sub="Total Points" />
+          <StatBlock label={TEAM_ABBR.JC} value={totals.totalJC.toFixed(1)} sub="Total Points" />
+          <StatBlock label={TEAM_ABBR.SG} value={totals.totalSG.toFixed(1)} sub="Total Points" />
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
 
@@ -1459,15 +1450,10 @@ function HomePage({
                 {tournament.courses?.[activeDay]?.name} • {tournament.courses?.[activeDay]?.city}
               </div>
               <div className="mt-3 text-white/80 text-sm">
-  <span className="text-white/60">Weather:</span>{" "}
-  {phxWx.condition}
-  {" • "}
-  {phxWx.tempF == null ? "—" : `${phxWx.tempF}°F`}
-</div>
-<div className="text-white/50 text-[11px] mt-1">
-  {phxWx.updatedNote}
-</div>
-
+                <span className="text-white/60">Weather:</span> {PHX_WEATHER_SNAPSHOT.condition} •{" "}
+                {PHX_WEATHER_SNAPSHOT.tempF}°F
+              </div>
+              <div className="text-white/50 text-[11px] mt-1">{PHX_WEATHER_SNAPSHOT.updatedNote}</div>
             </div>
 
             <div className="mt-4">
@@ -1491,7 +1477,7 @@ function HomePage({
                 )
               ) : (
                 <div className="text-white/60 text-xs">
-                  Public view is enabled. Use the <b>Sign in</b> button in the top-right to claim a player + enter scores.
+                  Public view is enabled. Sign in to claim a player + enter scores.
                 </div>
               )}
             </div>
@@ -1512,7 +1498,7 @@ function HomePage({
             {!userId ? (
               <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
                 <div className="text-white/70 text-sm">Public Viewer Mode</div>
-                <div className="text-white/60 text-xs mt-1">Sign in (top-right) to claim your identity and enter scores.</div>
+                <div className="text-white/60 text-xs mt-1">Sign in to claim your identity and enter scores.</div>
                 <div className="mt-3">
                   <Button variant="ghost" onClick={onOpenMatches} className="w-full">
                     Browse Matches
@@ -1606,7 +1592,7 @@ function HomePage({
           </Card>
         </div>
 
-                {/* Bottom admin actions (only visible when signed in + admin) */}
+        {/* Bottom admin actions: Admin Tools + Reseed (visible to admins) */}
         {isAdminUser ? (
           <div className="mt-8">
             <Card className="p-4">
@@ -1621,7 +1607,7 @@ function HomePage({
               </div>
 
               <div className="text-white/50 text-[11px] mt-3">
-                Reseed will overwrite players/days/matches (scores may be lost). Confirmation required.
+                Reseed overwrites players/days/matches (scores may be lost). Confirmation required.
               </div>
             </Card>
           </div>
