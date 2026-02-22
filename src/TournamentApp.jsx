@@ -710,23 +710,27 @@ function StatBlock({ label, value, logoSrc }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
       <div className="flex items-center justify-between gap-6">
-        
+
         {/* LEFT SIDE */}
-        <div className="flex flex-col">
-          {/* Team Name (smaller + tighter) */}
+        <div className="flex flex-col items-center text-center min-w-0">
+          
+          {/* Team Name (centered + slightly smaller) */}
           <div className="text-white text-lg font-semibold leading-tight">
             {label}
           </div>
 
-          {/* Logo */}
+          {/* Logo Area */}
           {logoSrc && (
-            <img
-              src={logoSrc}
-              alt={`${label} logo`}
-              className="mt-4 h-24 w-40 object-contain"
-              loading="lazy"
-            />
+            <div className="mt-6 h-36 flex items-center justify-center">
+              <img
+                src={logoSrc}
+                alt={`${label} logo`}
+                className="max-h-32 w-auto object-contain"
+                loading="lazy"
+              />
+            </div>
           )}
+
         </div>
 
         {/* RIGHT SIDE SCORE */}
