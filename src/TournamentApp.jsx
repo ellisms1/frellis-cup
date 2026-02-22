@@ -849,7 +849,7 @@ function TournamentHeaderMark() {
             sm:text-[14px]
           "
         >
-          Arizona Desert Match Play • Est. 2023
+          Phoenix, Arizona • Est. 2023
         </div>
       </div>
     </div>
