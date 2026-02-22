@@ -1,9 +1,10 @@
 // src/App.jsx
 import React from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
+import AuthGate from "./auth";
 import TournamentApp, { makeInitialTournament } from "./TournamentApp";
 import { seedTournament } from "./seedTournament";
 
@@ -27,11 +28,16 @@ export default function App() {
   const [reseedText, setReseedText] = React.useState("");
   const [preserveClaims, setPreserveClaims] = React.useState(true);
 
+  // Auth modal (Sign in button -> AuthGate)
+  const [authModalOpen, setAuthModalOpen] = React.useState(false);
+
   // Auth listener
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setFbUser(u || null);
       setAuthReady(true);
+      // If they sign in successfully, close the auth modal automatically
+      if (u) setAuthModalOpen(false);
     });
     return () => unsub();
   }, []);
@@ -185,6 +191,104 @@ export default function App() {
         overflowX: "hidden",
       }}
     >
+      {/* Top-right auth control (always available) */}
+      <div
+        style={{
+          position: "fixed",
+          top: 12,
+          right: 12,
+          zIndex: 10000,
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        {!fbUser ? (
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.18)",
+              background: "rgba(255,255,255,0.06)",
+              color: "white",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Sign In
+          </button>
+        ) : (
+          <button
+            onClick={() => signOut(auth)}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.18)",
+              background: "rgba(255,255,255,0.06)",
+              color: "white",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+            title={fbUser.email || fbUser.uid}
+          >
+            Sign Out
+          </button>
+        )}
+      </div>
+
+      {/* Auth modal */}
+      {authModalOpen ? (
+        <div
+          onClick={() => setAuthModalOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 9998,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              background: "#0b0b0f",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 16,
+              padding: 16,
+              color: "white",
+              boxShadow: "0 20px 80px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>Sign In</div>
+              <button
+                onClick={() => setAuthModalOpen(false)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "transparent",
+                  color: "white",
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <AuthGate />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Reseed confirmation modal */}
       {reseedOpen ? (
         <div
@@ -218,8 +322,8 @@ export default function App() {
           >
             <div style={{ fontWeight: 800, fontSize: 16 }}>Confirm Reseed</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 8, lineHeight: 1.4 }}>
-              This will overwrite tournament data in Firestore (players/days/matches reset to the seed). Live score
-              entries may be lost. To continue, type <b>RESEED</b>.
+              This will overwrite tournament data in Firestore (players/days/matches reset to the seed). Live score entries may be lost.
+              To continue, type <b>RESEED</b>.
             </div>
 
             {seedMsg ? <div style={{ marginTop: 10, fontSize: 12 }}>{seedMsg}</div> : null}
