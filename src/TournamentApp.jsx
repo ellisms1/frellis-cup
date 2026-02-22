@@ -1444,8 +1444,19 @@ function HomePage({
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} sub="Total Points" />
-          <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} sub="Total Points" />
+          <StatBlock
+  label={TEAM.JC}
+  value={totals.totalJC.toFixed(1)}
+  sub="Overall"
+  logoSrc="/jc-logo.png"
+/>
+
+<StatBlock
+  label={TEAM.SG}
+  value={totals.totalSG.toFixed(1)}
+  sub="Overall"
+  logoSrc="/sg-logo.png"
+/>
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
 
