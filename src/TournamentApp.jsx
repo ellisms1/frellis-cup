@@ -709,19 +709,19 @@ function Segmented({ value, onChange, options }) {
 function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
   const isLeadCard = !!leadTeam;
 
+  // Background tint for Current Lead card
   const leadStyles =
     leadTeam === "JC"
       ? "border-red-500/30 bg-red-500/10"
       : leadTeam === "SG"
       ? "border-yellow-400/30 bg-yellow-400/10"
-      : "border-white/10 bg-white/5";
+      : "border-white/10 bg-white/[0.04]";
 
   return (
     <div
       className={[
         "rounded-[32px] border p-6 md:p-7 backdrop-blur",
-        "bg-white/[0.04] border-white/10",
-        isLeadCard ? leadStyles : "",
+        isLeadCard ? leadStyles : "bg-white/[0.04] border-white/10",
       ].join(" ")}
     >
       {/* Header row */}
@@ -731,41 +731,50 @@ function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
           {sub ? <div className="text-white/40 text-xs mt-1">{sub}</div> : null}
         </div>
 
-        {/* Score (only for team blocks) */}
+        {/* Score (only for team blocks — lead card is logo-based) */}
         {value != null && !isLeadCard ? (
           <div className="text-white text-5xl md:text-6xl font-extrabold leading-none">{value}</div>
         ) : null}
       </div>
 
-      {/* Body */}
       {!isLeadCard ? (
         // TEAM SCORE CARD LAYOUT
-        <div className="mt-4 flex items-center justify-between gap-6">
-          <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold text-xl md:text-2xl text-center">{label}</div>
-
-            {logoSrc ? (
-              <div className="mt-4 flex justify-center">
-                <img
-                  src={logoSrc}
-                  alt={`${label} logo`}
-                  className="h-44 w-44 object-contain"
-                  loading="lazy"
-                />
+        <div className="mt-4">
+          {/* Fixed body height so score is vertically centered + no weird bottom dead space */}
+          <div className="flex items-center justify-between gap-6 min-h-[200px]">
+            {/* Left side: centered name + logo */}
+            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+              {/* Centered name above logo */}
+              <div className="text-white font-semibold text-lg md:text-xl text-center">
+                {label}
               </div>
-            ) : null}
-          </div>
 
-          {/* Score on right */}
-          <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
-            {value}
+              {logoSrc ? (
+                // Give the logo a "box" and let the image fill it consistently.
+                <div className="mt-3 h-[160px] w-[220px] flex items-center justify-center">
+                  <img
+                    src={logoSrc}
+                    alt={`${label} logo`}
+                    className="h-full w-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Right side: score (vertically centered by the parent flex) */}
+            <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
+              {value}
+            </div>
           </div>
         </div>
       ) : (
-        // CURRENT LEAD CARD LAYOUT
+        // CURRENT LEAD CARD LAYOUT (centered logo + tint)
         <div className="mt-6 flex items-center justify-center min-h-[210px]">
           {leadTeam === "TIED" ? (
-            <div className="text-white text-5xl md:text-6xl font-extrabold tracking-tight">Tied</div>
+            <div className="text-white text-5xl md:text-6xl font-extrabold tracking-tight">
+              Tied
+            </div>
           ) : logoSrc ? (
             <img
               src={logoSrc}
@@ -1501,7 +1510,7 @@ function HomePage({
           <StatBlock
   label="Current Lead"
   leadTeam={
-    totals.totalJC === totals.totalSG ? "TIED" : totals.totalJC > totals.totalSG ? "JC" : "SG"
+    totals.totalJC === totals.totalSG ? "AS" : totals.totalJC > totals.totalSG ? "JC" : "SG"
   }
   logoSrc={
     totals.totalJC === totals.totalSG
