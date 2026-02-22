@@ -706,12 +706,36 @@ function Segmented({ value, onChange, options }) {
   );
 }
 
-function StatBlock({ label, value, sub }) {
+function StatBlock({ label, value, sub, logoSrc }) {
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-      <div className="text-white/70 text-xs">{label}</div>
-      <div className="text-white text-2xl font-semibold mt-1">{value}</div>
-      {sub ? <div className="text-white/60 text-xs mt-1">{sub}</div> : null}
+    <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
+      <div className="flex items-center justify-between gap-4">
+        
+        {/* LEFT SIDE */}
+        <div className="min-w-0">
+          <div className="text-white/60 text-xs">{sub}</div>
+          <div className="text-white font-semibold text-lg leading-tight mt-1">
+            {label}
+          </div>
+
+          {logoSrc ? (
+            <div className="mt-4 h-12 flex items-center">
+              <img
+                src={logoSrc}
+                alt={`${label} logo`}
+                className="max-h-12 w-auto object-contain"
+                draggable={false}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        {/* RIGHT SIDE (Score) */}
+        <div className="text-white font-extrabold text-4xl tabular-nums">
+          {value}
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -2524,8 +2548,19 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch })
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} sub="Overall" />
-          <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} sub="Overall" />
+          <StatBlock
+  label={TEAM.JC}
+  value={totals.totalJC.toFixed(1)}
+  sub="Overall"
+  logoSrc="/jc-logo.png"
+/>
+
+<StatBlock
+  label={TEAM.SG}
+  value={totals.totalSG.toFixed(1)}
+  sub="Overall"
+  logoSrc="/sg-logo.png"
+/>
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
 
