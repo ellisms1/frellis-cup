@@ -1444,6 +1444,13 @@ function HomePage({
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+         <img
+  src="/jc-logo.png?v=999"
+  alt="jc test"
+  style={{ height: 40, width: 120, objectFit: "contain", border: "1px solid red" }}
+/> 
+          
           <StatBlock
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
