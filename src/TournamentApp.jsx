@@ -708,24 +708,24 @@ function Segmented({ value, onChange, options }) {
 
 function StatBlock({ label, value, logoSrc }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-5">
       <div className="flex items-center justify-between gap-6">
 
         {/* LEFT SIDE */}
         <div className="flex flex-col items-center text-center min-w-0">
           
-          {/* Team Name (centered + slightly smaller) */}
-          <div className="text-white text-lg font-semibold leading-tight">
+          {/* Team Name */}
+          <div className="text-white text-base font-semibold leading-tight">
             {label}
           </div>
 
           {/* Logo Area */}
           {logoSrc && (
-            <div className="mt-6 h-32 flex items-center justify-center">
+            <div className="mt-4 flex items-center justify-center">
               <img
                 src={logoSrc}
                 alt={`${label} logo`}
-                className="max-h-28 w-auto object-contain"
+                className="h-32 w-auto object-contain"
                 loading="lazy"
               />
             </div>
