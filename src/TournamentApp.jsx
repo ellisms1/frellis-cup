@@ -1918,7 +1918,6 @@ function MatchesPage({ tournament, totals, activeDay, setActiveDay, playersById,
           options={(tournament.days || []).map((d) => ({
             value: d.day,
             label: `Day ${d.day}`,
-            icon: <span className="text-xs font-semibold">{d.day}</span>,
           }))}
         />
 
