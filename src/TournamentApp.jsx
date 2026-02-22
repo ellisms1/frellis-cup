@@ -721,11 +721,10 @@ function StatBlock({ label, value, sub, logoSrc }) {
           {logoSrc ? (
             <div className="mt-4 h-12 flex items-center">
               <img
-                src={logoSrc}
-                alt={`${label} logo`}
-                className="max-h-12 w-auto object-contain"
-                draggable={false}
-              />
+  src={logoSrc}
+  alt={`${label} logo`}
+  className="h-10 w-10 object-contain"
+/>
             </div>
           ) : null}
         </div>
@@ -1448,14 +1447,14 @@ function HomePage({
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
   sub="Overall"
-  logoSrc="/jc-logo.png"
+  logoSrc={`${import.meta.env.BASE_URL}jc-logo.png`}
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
   sub="Overall"
-  logoSrc="/sg-logo.png"
+  logoSrc={`${import.meta.env.BASE_URL}sg-logo.png`}
 />
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
@@ -2563,14 +2562,14 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch })
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
   sub="Overall"
-  logoSrc="/jc-logo.png"
+  logoSrc={`${import.meta.env.BASE_URL}jc-logo.png`}
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
   sub="Overall"
-  logoSrc="/sg-logo.png"
+  logoSrc={`${import.meta.env.BASE_URL}sg-logo.png`}
 />
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
