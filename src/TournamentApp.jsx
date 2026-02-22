@@ -831,7 +831,7 @@ function TournamentHeaderMark() {
             font-extrabold
             leading-tight
             tracking-[0.18em]
-            text-[40px]      /* mobile */
+            text-[36px]      /* mobile */
             sm:text-[60px]   /* small screens */
             md:text-[72px]   /* desktop */
           "
