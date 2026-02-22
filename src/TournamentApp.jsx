@@ -709,7 +709,6 @@ function Segmented({ value, onChange, options }) {
 function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
   const isLeadCard = leadTeam != null;
 
-  // Background tint for Current Lead card
   const leadStyles =
     leadTeam === "JC"
       ? "border-red-500/30 bg-red-500/10"
@@ -724,60 +723,60 @@ function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
         isLeadCard ? leadStyles : "bg-white/[0.04] border-white/10",
       ].join(" ")}
     >
-      {/* Header row (label + optional sub only; NO score up here) */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-white/60 text-sm">{label}</div>
-          {sub ? <div className="text-white/40 text-xs mt-1">{sub}</div> : null}
-        </div>
-      </div>
-
+      {/* TEAM SCORE CARDS (NO HEADER ROW — prevents duplicate names) */}
       {!isLeadCard ? (
-        // TEAM SCORE CARD LAYOUT
-        <div className="mt-4">
-          {/* One consistent body height so score centers and we don’t get bottom dead space */}
-          <div className="flex items-center justify-between gap-6 min-h-[200px]">
-            {/* Left side: centered name + logo */}
-            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
-              <div className="text-white font-semibold text-lg md:text-xl text-center">
-                {label}
+        <div className="flex items-center justify-between gap-6 min-h-[200px]">
+          {/* Left: name + logo, centered */}
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+            <div className="text-white font-semibold text-lg md:text-xl text-center">
+              {label}
+            </div>
+
+            {logoSrc ? (
+              <div className="mt-3 h-[160px] w-[220px] flex items-center justify-center">
+                <img
+                  src={logoSrc}
+                  alt={`${label} logo`}
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
               </div>
+            ) : null}
+          </div>
 
-              {logoSrc ? (
-                <div className="mt-3 h-[160px] w-[220px] flex items-center justify-center">
-                  <img
-                    src={logoSrc}
-                    alt={`${label} logo`}
-                    className="h-full w-full object-contain"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
-            </div>
-
-            {/* Score on right (only place the score appears) */}
-            <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
-              {value}
-            </div>
+          {/* Right: score */}
+          <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
+            {value}
           </div>
         </div>
       ) : (
-        // CURRENT LEAD CARD LAYOUT
-        <div className="mt-6 flex items-center justify-center min-h-[210px]">
-          {leadTeam === "TIED" ? (
-            <div className="text-white text-6xl md:text-7xl font-extrabold tracking-tight">
-              AS
+        /* CURRENT LEAD CARD */
+        <div className="flex flex-col min-h-[200px]">
+          {/* Header only for lead card */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-white/60 text-sm">{label}</div>
+              {sub ? <div className="text-white/40 text-xs mt-1">{sub}</div> : null}
             </div>
-          ) : logoSrc ? (
-            <img
-              src={logoSrc}
-              alt={`${leadTeam} leading`}
-              className="h-48 w-48 md:h-56 md:w-56 object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <div className="text-white/60">—</div>
-          )}
+          </div>
+
+          {/* Body fills remaining space and centers content dead-center */}
+          <div className="flex-1 flex items-center justify-center">
+            {leadTeam === "TIED" ? (
+              <div className="text-white text-7xl md:text-8xl font-extrabold tracking-tight">
+                AS
+              </div>
+            ) : logoSrc ? (
+              <img
+                src={logoSrc}
+                alt={`${leadTeam} leading`}
+                className="h-48 w-48 md:h-56 md:w-56 object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <div className="text-white/60">—</div>
+            )}
+          </div>
         </div>
       )}
     </div>
