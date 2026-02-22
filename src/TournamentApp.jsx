@@ -1557,7 +1557,7 @@ function HomePage({
                 me ? (
                   <>
                     <div className="text-white/70 text-sm">
-                      {me.name} • CH {me.courseHcp}
+                      {me.name} • HCP {me.courseHcp}
                     </div>
                     <div className="mt-3 text-white/60 text-xs">Profile claimed. Score entry enabled for your match.</div>
                   </>
@@ -2249,7 +2249,7 @@ function FourballEntry({ match, activeHole, holeMeta, playersById, holeComputed,
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-white font-medium">{p?.name || "—"}</div>
-                      <div className="text-white/60 text-xs">CH {p?.courseHcp ?? "—"} • Strokes This Hole: {sr}</div>
+                      <div className="text-white/60 text-xs">HCP {p?.courseHcp ?? "—"} • Strokes This Hole: {sr}</div>
                     </div>
                     <NumberStepper value={gross} onChange={(v) => setGross(pid, activeHole, v)} min={1} max={12} disabled={!editable} />
                   </div>
@@ -2280,7 +2280,7 @@ function FourballEntry({ match, activeHole, holeMeta, playersById, holeComputed,
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-white font-medium">{p?.name || "—"}</div>
-                      <div className="text-white/60 text-xs">CH {p?.courseHcp ?? "—"} • Strokes This Hole: {sr}</div>
+                      <div className="text-white/60 text-xs">HCP {p?.courseHcp ?? "—"} • Strokes This Hole: {sr}</div>
                     </div>
                     <NumberStepper value={gross} onChange={(v) => setGross(pid, activeHole, v)} min={1} max={12} disabled={!editable} />
                   </div>
@@ -2419,7 +2419,7 @@ function SinglesEntry({ match, activeHole, holeMeta, playersById, holeComputed, 
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-white font-medium">{a?.name || "—"}</div>
-                <div className="text-white/60 text-xs">CH {a?.courseHcp ?? "—"} • Strokes This Hole: {aSr}</div>
+                <div className="text-white/60 text-xs">HCP {a?.courseHcp ?? "—"} • Strokes This Hole: {aSr}</div>
               </div>
               <NumberStepper value={aGross} onChange={(v) => setGross(aPid, activeHole, v)} min={1} max={12} disabled={!canEditPlayer(aPid)} />
             </div>
@@ -2437,7 +2437,7 @@ function SinglesEntry({ match, activeHole, holeMeta, playersById, holeComputed, 
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-white font-medium">{b?.name || "—"}</div>
-                <div className="text-white/60 text-xs">CH {b?.courseHcp ?? "—"} • Strokes This Hole: {bSr}</div>
+                <div className="text-white/60 text-xs">HCP {b?.courseHcp ?? "—"} • Strokes This Hole: {bSr}</div>
               </div>
               <NumberStepper value={bGross} onChange={(v) => setGross(bPid, activeHole, v)} min={1} max={12} disabled={!canEditPlayer(bPid)} />
             </div>
@@ -2771,7 +2771,7 @@ function AdminPage({
                                 >
                                   {jcPlayers.map((p) => (
                                     <option key={p.id} value={p.id}>
-                                      {p.name} (CH {p.courseHcp})
+                                      {p.name} (HCP {p.courseHcp})
                                     </option>
                                   ))}
                                 </select>
@@ -2790,7 +2790,7 @@ function AdminPage({
                                     >
                                       {jcPlayers.map((p) => (
                                         <option key={p.id} value={p.id}>
-                                          {p.name} (CH {p.courseHcp})
+                                          {p.name} (HCP {p.courseHcp})
                                         </option>
                                       ))}
                                     </select>
@@ -2813,7 +2813,7 @@ function AdminPage({
                                 >
                                   {sgPlayers.map((p) => (
                                     <option key={p.id} value={p.id}>
-                                      {p.name} (CH {p.courseHcp})
+                                      {p.name} (HCP {p.courseHcp})
                                     </option>
                                   ))}
                                 </select>
@@ -2832,7 +2832,7 @@ function AdminPage({
                                     >
                                       {sgPlayers.map((p) => (
                                         <option key={p.id} value={p.id}>
-                                          {p.name} (CH {p.courseHcp})
+                                          {p.name} (HCP {p.courseHcp})
                                         </option>
                                       ))}
                                     </select>
