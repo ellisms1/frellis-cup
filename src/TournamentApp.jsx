@@ -708,7 +708,7 @@ function Segmented({ value, onChange, options }) {
 
 function StatBlock({ label, value, logoSrc }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-6">
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-5">
       <div className="flex items-stretch justify-between gap-8">
         {/* LEFT SIDE */}
         <div className="flex flex-col items-center text-center">
