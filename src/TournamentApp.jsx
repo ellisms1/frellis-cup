@@ -151,8 +151,8 @@ function usePhoenixWeather() {
 }
 
 const TEAM = {
-  JC: "Jumping Chollas",
-  SG: "Saguaros",
+  JC: "Jumping Chollas Golf Club",
+  SG: "Saguaro Golf Club",
 };
 
 const TEAM_ABBR = {
@@ -706,35 +706,34 @@ function Segmented({ value, onChange, options }) {
   );
 }
 
-function StatBlock({ label, value, sub, logoSrc }) {
+function StatBlock({ label, value, logoSrc }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
-      <div className="flex items-start justify-between gap-6">
-        {/* LEFT */}
-        <div className="min-w-0">
-          <div className="text-white/60 text-sm">{sub}</div>
-          <div className="text-white text-2xl font-semibold mt-1 truncate">{label}</div>
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+      <div className="flex items-center justify-between gap-6">
+        
+        {/* LEFT SIDE */}
+        <div className="flex flex-col">
+          {/* Team Name (smaller + tighter) */}
+          <div className="text-white text-lg font-semibold leading-tight">
+            {label}
+          </div>
 
-          {logoSrc ? (
-            <div className="mt-4">
-              <img
-                src={logoSrc}
-                alt={`${label} logo`}
-                className="h-10 w-28 object-contain opacity-90"
-                loading="lazy"
-                onError={(e) => {
-                  // Hide the broken image icon completely if it fails
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-          ) : null}
+          {/* Logo */}
+          {logoSrc && (
+            <img
+              src={logoSrc}
+              alt={`${label} logo`}
+              className="mt-4 h-24 w-40 object-contain"
+              loading="lazy"
+            />
+          )}
         </div>
 
-        {/* RIGHT */}
-        <div className="shrink-0 text-white text-6xl font-extrabold leading-none">
+        {/* RIGHT SIDE SCORE */}
+        <div className="text-white text-6xl font-extrabold leading-none">
           {value}
         </div>
+
       </div>
     </div>
   );
@@ -1448,15 +1447,13 @@ function HomePage({
           <StatBlock
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
-  sub="Overall"
-  logoSrc="/jc-logo.png?v=2"
+  logoSrc="/jc-logo.png"
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
-  sub="Overall"
-  logoSrc="/sg-logo.png?v=2"
+  logoSrc="/sg-logo.png"
 />
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
@@ -2563,15 +2560,13 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch })
           <StatBlock
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
-  sub="Overall"
-  logoSrc="/jc-logo.png?v=2"
+  logoSrc="/jc-logo.png"
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
-  sub="Overall"
-  logoSrc="/sg-logo.png?v=2"
+  logoSrc="/sg-logo.png"
 />
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
