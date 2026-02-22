@@ -152,7 +152,7 @@ function usePhoenixWeather() {
 
 const TEAM = {
   JC: "Jumping Chollas",
-  SG: "Saguaro",
+  SG: "Saguaros",
 };
 
 const TEAM_ABBR = {
