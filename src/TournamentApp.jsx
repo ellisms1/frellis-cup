@@ -1501,7 +1501,7 @@ function HomePage({
           <StatBlock
   label="Current Lead"
   leadTeam={
-    totals.totalJC === totals.totalSG ? "AS" : totals.totalJC > totals.totalSG ? "JC" : "SG"
+    totals.totalJC === totals.totalSG ? "TIED" : totals.totalJC > totals.totalSG ? "JC" : "SG"
   }
   logoSrc={
     totals.totalJC === totals.totalSG
