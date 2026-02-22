@@ -151,8 +151,8 @@ function usePhoenixWeather() {
 }
 
 const TEAM = {
-  JC: "Jumping Chollas GC",
-  SG: "Saguaro GC",
+  JC: "Jumping Chollas",
+  SG: "Saguaro",
 };
 
 const TEAM_ABBR = {
@@ -706,31 +706,78 @@ function Segmented({ value, onChange, options }) {
   );
 }
 
-function StatBlock({ label, value, logoSrc }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-4">
-      <div className="flex items-stretch justify-between gap-8">
-        {/* LEFT SIDE */}
-        <div className="flex flex-col items-center text-center">
-          {/* Team Name */}
-          <div className="text-white text-base font-semibold">{label}</div>
+function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
+  const isLeadCard = !!leadTeam;
 
-          {/* Logo */}
-          {logoSrc && (
+  const leadStyles =
+    leadTeam === "JC"
+      ? "border-red-500/30 bg-red-500/10"
+      : leadTeam === "SG"
+      ? "border-yellow-400/30 bg-yellow-400/10"
+      : "border-white/10 bg-white/5";
+
+  return (
+    <div
+      className={[
+        "rounded-[32px] border p-6 md:p-7 backdrop-blur",
+        "bg-white/[0.04] border-white/10",
+        isLeadCard ? leadStyles : "",
+      ].join(" ")}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-white/60 text-sm">{label}</div>
+          {sub ? <div className="text-white/40 text-xs mt-1">{sub}</div> : null}
+        </div>
+
+        {/* Score (only for team blocks) */}
+        {value != null && !isLeadCard ? (
+          <div className="text-white text-5xl md:text-6xl font-extrabold leading-none">{value}</div>
+        ) : null}
+      </div>
+
+      {/* Body */}
+      {!isLeadCard ? (
+        // TEAM SCORE CARD LAYOUT
+        <div className="mt-4 flex items-center justify-between gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="text-white font-semibold text-xl md:text-2xl text-center">{label}</div>
+
+            {logoSrc ? (
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={logoSrc}
+                  alt={`${label} logo`}
+                  className="h-44 w-44 object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {/* Score on right */}
+          <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
+            {value}
+          </div>
+        </div>
+      ) : (
+        // CURRENT LEAD CARD LAYOUT
+        <div className="mt-6 flex items-center justify-center min-h-[210px]">
+          {leadTeam === "TIED" ? (
+            <div className="text-white text-5xl md:text-6xl font-extrabold tracking-tight">Tied</div>
+          ) : logoSrc ? (
             <img
               src={logoSrc}
-              alt={`${label} logo`}
-              className="mt-5 h-44 w-auto object-contain"
+              alt={`${leadTeam} leading`}
+              className="h-48 w-48 md:h-56 md:w-56 object-contain"
               loading="lazy"
             />
+          ) : (
+            <div className="text-white/60">—</div>
           )}
         </div>
-
-        {/* RIGHT SIDE SCORE (vertically centered) */}
-        <div className="flex items-center">
-          <div className="text-white text-6xl font-extrabold leading-none">{value}</div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1451,7 +1498,19 @@ function HomePage({
   value={totals.totalSG.toFixed(1)}
   logoSrc="/sg-logo.png"
 />
-          <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
+          <StatBlock
+  label="Current Lead"
+  leadTeam={
+    totals.totalJC === totals.totalSG ? "TIED" : totals.totalJC > totals.totalSG ? "JC" : "SG"
+  }
+  logoSrc={
+    totals.totalJC === totals.totalSG
+      ? null
+      : totals.totalJC > totals.totalSG
+      ? "/jc-logo.png"
+      : "/sg-logo.png"
+  }
+/>
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
