@@ -1,10 +1,9 @@
 // src/App.jsx
 import React from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
-import AuthGate from "./auth";
 import TournamentApp, { makeInitialTournament } from "./TournamentApp";
 import { seedTournament } from "./seedTournament";
 
@@ -109,7 +108,7 @@ export default function App() {
         return;
       }
 
-      // If preserving claims, read them first (best-effort)
+      // Preserve claims best-effort
       let existingClaims = {};
       try {
         const snap = await getDoc(doc(db, "tournaments", TOURNAMENT_ID));
@@ -122,17 +121,14 @@ export default function App() {
       }
 
       const tournament = makeInitialTournament();
-
-      // Store owner for display (admin privileges come from adminUsers/{uid})
       tournament.ownerUserId = fbUser.uid;
-
       tournament.claims = keepClaims ? existingClaims || {} : {};
 
       await seedTournament(TOURNAMENT_ID, tournament);
 
       setSeedMsg(keepClaims ? "✅ Reseed successful (claims preserved)." : "✅ Reseed successful (claims cleared).");
 
-      // Recheck existence after seeding
+      // refresh existence/meta
       const snap = await getDoc(doc(db, "tournaments", TOURNAMENT_ID));
       setTournamentExists(snap.exists());
       if (snap.exists()) {
@@ -189,65 +185,6 @@ export default function App() {
         overflowX: "hidden",
       }}
     >
-      {/* Top admin panel / auth gate */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-        {fbUser ? (
-          <div
-            style={{
-              padding: 12,
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 12,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              background: "rgba(0,0,0,0.25)",
-              color: "white",
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700 }}>Admin Tools</div>
-              <div style={{ fontSize: 12, opacity: 0.85 }}>
-                Logged in as <b>{fbUser.email || fbUser.uid}</b>
-                {loadingTournament ? (
-                  <> • Checking tournament…</>
-                ) : tournamentExists ? (
-                  <> • Tournament doc exists ✅</>
-                ) : (
-                  <> • Tournament doc missing ⚠️</>
-                )}
-                {tournamentMeta?.ownerUserId ? (
-                  <>
-                    {" "}
-                    • Owner:{" "}
-                    <span style={{ opacity: 0.9 }}>
-                      {tournamentMeta.ownerUserId === fbUser.uid ? "YOU" : tournamentMeta.ownerUserId}
-                    </span>
-                  </>
-                ) : null}
-                {isAdmin ? <> • You are admin ✅</> : <> • Not admin</>}
-              </div>
-
-              {seedMsg ? <div style={{ fontSize: 12, marginTop: 6 }}>{seedMsg}</div> : null}
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={openSeedFlow}
-                disabled={seedBusy || !isAdmin}
-                title={!isAdmin ? "Only admins can seed/reseed Firestore." : "Seed tournament data into Firestore."}
-              >
-                {seedBusy ? "Seeding…" : tournamentExists ? "Reseed Firestore" : "Seed Firestore"}
-              </button>
-
-              <button onClick={() => signOut(auth)}>Sign out</button>
-            </div>
-          </div>
-        ) : (
-          <AuthGate />
-        )}
-      </div>
-
       {/* Reseed confirmation modal */}
       {reseedOpen ? (
         <div
@@ -284,6 +221,8 @@ export default function App() {
               This will overwrite tournament data in Firestore (players/days/matches reset to the seed). Live score
               entries may be lost. To continue, type <b>RESEED</b>.
             </div>
+
+            {seedMsg ? <div style={{ marginTop: 10, fontSize: 12 }}>{seedMsg}</div> : null}
 
             <div style={{ marginTop: 12 }}>
               <input
@@ -356,6 +295,7 @@ export default function App() {
         fbUser={fbUser}
         onOpenReseed={openSeedFlow}
         canReseed={!!fbUser?.uid && isAdmin}
+        tournamentOwnerUserId={tournamentMeta?.ownerUserId || null}
       />
     </div>
   );
