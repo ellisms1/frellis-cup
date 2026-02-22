@@ -2036,21 +2036,21 @@ function MatchPage({ tournament, match, day, playersById, claimedPlayerId, isAdm
   const [activeHole, setActiveHole] = useState(1);
 
   const computed = useMemo(() => {
-  const mh = computeMatchHoles(match, holes, playersById);
+    const mh = computeMatchHoles(match, holes, playersById);
 
-  const status =
-    match.format === "SCRAMBLE_STABLEFORD"
-      ? stablefordTotalsStatusFromHoles(mh, match.sideA.id, match.sideB.id)
-      : matchStatusFromHoles(
-          mh.map((x) => ({ played: x.played, winnerSideId: x.winnerSideId })),
-          match.sideA.id,
-          match.sideB.id
-        );
+    const status =
+      match.format === "SCRAMBLE_STABLEFORD"
+        ? stablefordTotalsStatusFromHoles(mh, match.sideA.id, match.sideB.id)
+        : matchStatusFromHoles(
+            mh.map((x) => ({ played: x.played, winnerSideId: x.winnerSideId })),
+            match.sideA.id,
+            match.sideB.id
+          );
 
-  const pts = pointsForFinalMatch(status, match.sideA, match.sideB);
+    const pts = pointsForFinalMatch(status, match.sideA, match.sideB);
 
-  return { holes: mh, status, points: pts };
-}, [match, holes, playersById]);
+    return { holes: mh, status, points: pts };
+  }, [match, holes, playersById]);
 
   const me = claimedPlayerId ? playersById[claimedPlayerId] : null;
   const isParticipant = !!me && (match.sideA.playerIds.includes(me.id) || match.sideB.playerIds.includes(me.id));
@@ -2154,49 +2154,16 @@ function MatchPage({ tournament, match, day, playersById, claimedPlayerId, isAdm
               </div>
 
               <div className="mt-4 text-white/60 text-xs">
-                {isAdmin ? "Admin can edit any score." : me ? "You can edit only permitted scores for your match." : "Spectator mode until you claim a profile."}
+                {isAdmin
+                  ? "Admin can edit any score."
+                  : me
+                  ? "You can edit only permitted scores for your match."
+                  : "Spectator mode until you claim a profile."}
               </div>
             </Card>
           </div>
 
           <div className="lg:col-span-8 space-y-4">
-            <Card className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-white font-semibold">
-                    {TEAM.JC} vs {TEAM.SG}
-                  </div>
-                  <div className="text-white/60 text-xs mt-1">{day.title}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <TeamBadge teamId="JC" />
-                  <TeamBadge teamId="SG" />
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="text-white/60 text-xs mb-2">{TEAM_ABBR.JC}</div>
-                  <div className="text-white text-sm font-medium">
-                    {match.sideA.playerIds.map((id) => playersById[id]?.name ?? "—").join(" / ")}
-                  </div>
-                </div>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="text-white/60 text-xs mb-2">{TEAM_ABBR.SG}</div>
-                  <div className="text-white text-sm font-medium">
-                    {match.sideB.playerIds.map((id) => playersById[id]?.name ?? "—").join(" / ")}
-                  </div>
-                </div>
-              </div>
-
-              {!me ? (
-                <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="text-white/70 text-sm">Spectator Mode</div>
-                  <div className="text-white/60 text-xs mt-1">Claim your profile to enter scores for your match.</div>
-                </div>
-              ) : null}
-            </Card>
-
             {match.format === "FOURBALL_NET" ? (
               <FourballEntry
                 match={match}
