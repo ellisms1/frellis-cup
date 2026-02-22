@@ -1445,14 +1445,14 @@ function HomePage({
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
   sub="Overall"
-  logoSrc={`${import.meta.env.BASE_URL}jc-logo.png`}
+  logoSrc="/jc-logo.png?v=2"
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
   sub="Overall"
-  logoSrc={`${import.meta.env.BASE_URL}sg-logo.png`}
+  logoSrc="/sg-logo.png?v=2"
 />
           <StatBlock label="Current Lead" value={leader} sub="Updates Live As Holes Are Entered" />
         </div>
@@ -2560,14 +2560,14 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch })
   label={TEAM.JC}
   value={totals.totalJC.toFixed(1)}
   sub="Overall"
-  logoSrc={`${import.meta.env.BASE_URL}jc-logo.png`}
+  logoSrc="/jc-logo.png?v=2"
 />
 
 <StatBlock
   label={TEAM.SG}
   value={totals.totalSG.toFixed(1)}
   sub="Overall"
-  logoSrc={`${import.meta.env.BASE_URL}sg-logo.png`}
+  logoSrc="/sg-logo.png?v=2"
 />
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
