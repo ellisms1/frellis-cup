@@ -707,7 +707,7 @@ function Segmented({ value, onChange, options }) {
 }
 
 function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
-  const isLeadCard = !!leadTeam;
+  const isLeadCard = leadTeam != null;
 
   // Background tint for Current Lead card
   const leadStyles =
@@ -724,33 +724,26 @@ function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
         isLeadCard ? leadStyles : "bg-white/[0.04] border-white/10",
       ].join(" ")}
     >
-      {/* Header row */}
+      {/* Header row (label + optional sub only; NO score up here) */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-white/60 text-sm">{label}</div>
           {sub ? <div className="text-white/40 text-xs mt-1">{sub}</div> : null}
         </div>
-
-        {/* Score (only for team blocks — lead card is logo-based) */}
-        {value != null && !isLeadCard ? (
-          <div className="text-white text-5xl md:text-6xl font-extrabold leading-none">{value}</div>
-        ) : null}
       </div>
 
       {!isLeadCard ? (
         // TEAM SCORE CARD LAYOUT
         <div className="mt-4">
-          {/* Fixed body height so score is vertically centered + no weird bottom dead space */}
+          {/* One consistent body height so score centers and we don’t get bottom dead space */}
           <div className="flex items-center justify-between gap-6 min-h-[200px]">
             {/* Left side: centered name + logo */}
             <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
-              {/* Centered name above logo */}
               <div className="text-white font-semibold text-lg md:text-xl text-center">
                 {label}
               </div>
 
               {logoSrc ? (
-                // Give the logo a "box" and let the image fill it consistently.
                 <div className="mt-3 h-[160px] w-[220px] flex items-center justify-center">
                   <img
                     src={logoSrc}
@@ -762,18 +755,18 @@ function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
               ) : null}
             </div>
 
-            {/* Right side: score (vertically centered by the parent flex) */}
+            {/* Score on right (only place the score appears) */}
             <div className="shrink-0 text-white text-6xl md:text-7xl font-extrabold leading-none">
               {value}
             </div>
           </div>
         </div>
       ) : (
-        // CURRENT LEAD CARD LAYOUT (centered logo + tint)
+        // CURRENT LEAD CARD LAYOUT
         <div className="mt-6 flex items-center justify-center min-h-[210px]">
           {leadTeam === "TIED" ? (
-            <div className="text-white text-5xl md:text-6xl font-extrabold tracking-tight">
-              Tied
+            <div className="text-white text-6xl md:text-7xl font-extrabold tracking-tight">
+              AS
             </div>
           ) : logoSrc ? (
             <img
