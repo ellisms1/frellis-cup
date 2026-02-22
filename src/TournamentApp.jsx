@@ -151,8 +151,8 @@ function usePhoenixWeather() {
 }
 
 const TEAM = {
-  JC: "Jumping Chollas Golf Club",
-  SG: "Saguaro Golf Club",
+  JC: "Jumping Chollas G.C.",
+  SG: "Saguaro G.C.",
 };
 
 const TEAM_ABBR = {
