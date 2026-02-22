@@ -724,7 +724,7 @@ function StatBlock({ label, value, logoSrc }) {
             <img
               src={logoSrc}
               alt={`${label} logo`}
-              className="mt-6 h-40 w-auto object-contain"
+              className="mt-6 h-44 w-auto object-contain"
               loading="lazy"
             />
           )}
