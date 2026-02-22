@@ -721,11 +721,11 @@ function StatBlock({ label, value, logoSrc }) {
 
           {/* Logo Area */}
           {logoSrc && (
-            <div className="mt-6 h-36 flex items-center justify-center">
+            <div className="mt-6 h-32 flex items-center justify-center">
               <img
                 src={logoSrc}
                 alt={`${label} logo`}
-                className="max-h-32 w-auto object-contain"
+                className="max-h-28 w-auto object-contain"
                 loading="lazy"
               />
             </div>
