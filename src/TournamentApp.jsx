@@ -708,28 +708,31 @@ function Segmented({ value, onChange, options }) {
 
 function StatBlock({ label, value, sub, logoSrc }) {
   return (
-    <div className="p-6 rounded-3xl bg-white/5 border border-white/10">
-      <div className="flex items-center justify-between gap-6">
-        
-        {/* LEFT SIDE */}
-        <div>
-          <div className="text-white/50 text-xs">{sub}</div>
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+      <div className="flex items-start justify-between gap-6">
+        {/* LEFT */}
+        <div className="min-w-0">
+          <div className="text-white/60 text-sm">{sub}</div>
+          <div className="text-white text-2xl font-semibold mt-1 truncate">{label}</div>
 
-          <div className="text-white text-xl font-semibold mt-1">
-            {label}
-          </div>
-
-          {logoSrc && (
-            <img
-              src={logoSrc}
-              alt={`${label} logo`}
-              className="mt-4 w-14 h-14 object-contain"
-            />
-          )}
+          {logoSrc ? (
+            <div className="mt-4">
+              <img
+                src={logoSrc}
+                alt={`${label} logo`}
+                className="h-10 w-28 object-contain opacity-90"
+                loading="lazy"
+                onError={(e) => {
+                  // Hide the broken image icon completely if it fails
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="text-white text-5xl font-extrabold tabular-nums">
+        {/* RIGHT */}
+        <div className="shrink-0 text-white text-6xl font-extrabold leading-none">
           {value}
         </div>
       </div>
