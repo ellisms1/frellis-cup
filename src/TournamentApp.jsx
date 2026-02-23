@@ -915,7 +915,16 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
     <Modal open={open} onClose={onClose} title="Sign in">
       <div className="space-y-3">
         <input
-  className="w-full rounded-xl !bg-white border border-white/20 px-3 py-2 text-sm !text-black caret-black placeholder-black/50 outline-none focus:border-white/40"
+  className="w-full rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm text-white
+             placeholder:text-white/40 caret-white outline-none
+             focus:border-white/30 focus:bg-black/40"
+  style={{
+    color: "white",
+    caretColor: "white",
+    WebkitTextFillColor: "white",
+    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.35) inset",
+    transition: "background-color 9999s ease-in-out 0s",
+  }}
   placeholder="Email"
   autoComplete="email"
   value={email}
@@ -923,7 +932,16 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
 />
 
 <input
-  className="w-full rounded-xl !bg-white border border-white/20 px-3 py-2 text-sm !text-black caret-black placeholder-black/50 outline-none focus:border-white/40"
+  className="w-full rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm text-white
+             placeholder:text-white/40 caret-white outline-none
+             focus:border-white/30 focus:bg-black/40"
+  style={{
+    color: "white",
+    caretColor: "white",
+    WebkitTextFillColor: "white",
+    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.35) inset",
+    transition: "background-color 9999s ease-in-out 0s",
+  }}
   placeholder="Password"
   type="password"
   autoComplete="current-password"
