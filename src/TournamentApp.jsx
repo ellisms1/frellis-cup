@@ -920,7 +920,7 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
            border border-zinc-700 
            px-3 py-2 
            text-sm 
-           text-white 
+           text-black 
            placeholder-zinc-400 
            outline-none 
            focus:border-[#c8a96a] 
@@ -937,7 +937,7 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
            border border-zinc-700 
            px-3 py-2 
            text-sm 
-           text-white 
+           text-black 
            placeholder-zinc-400 
            outline-none 
            focus:border-[#c8a96a] 
