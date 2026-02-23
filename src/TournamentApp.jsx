@@ -915,15 +915,21 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
     <Modal open={open} onClose={onClose} title="Sign in">
       <div className="space-y-3">
         <input
-  className="w-full rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm text-white
-             placeholder:text-white/40 caret-white outline-none
-             focus:border-white/30 focus:bg-black/40"
+  className={[
+    "w-full rounded-xl px-3 py-2 text-sm outline-none appearance-none",
+    "!bg-black/40 !text-white",
+    "border border-white/15",
+    "placeholder:text-white/40 caret-white",
+    "focus:!bg-black/50 focus:border-white/30",
+  ].join(" ")}
   style={{
-    color: "white",
-    caretColor: "white",
-    WebkitTextFillColor: "white",
-    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.35) inset",
-    transition: "background-color 9999s ease-in-out 0s",
+    backgroundColor: "rgba(0,0,0,0.40)", // hard override
+    color: "#fff",
+    caretColor: "#fff",
+
+    // Chrome/Safari text rendering + autofill quirks
+    WebkitTextFillColor: "#fff",
+    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.40) inset",
   }}
   placeholder="Email"
   autoComplete="email"
@@ -932,15 +938,19 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
 />
 
 <input
-  className="w-full rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm text-white
-             placeholder:text-white/40 caret-white outline-none
-             focus:border-white/30 focus:bg-black/40"
+  className={[
+    "w-full rounded-xl px-3 py-2 text-sm outline-none appearance-none",
+    "!bg-black/40 !text-white",
+    "border border-white/15",
+    "placeholder:text-white/40 caret-white",
+    "focus:!bg-black/50 focus:border-white/30",
+  ].join(" ")}
   style={{
-    color: "white",
-    caretColor: "white",
-    WebkitTextFillColor: "white",
-    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.35) inset",
-    transition: "background-color 9999s ease-in-out 0s",
+    backgroundColor: "rgba(0,0,0,0.40)",
+    color: "#fff",
+    caretColor: "#fff",
+    WebkitTextFillColor: "#fff",
+    WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0.40) inset",
   }}
   placeholder="Password"
   type="password"
