@@ -915,7 +915,7 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
     <Modal open={open} onClose={onClose} title="Sign in">
       <div className="space-y-3">
         <input
-  className="w-full rounded-xl bg-white border border-white/20 px-3 py-2 text-sm text-black placeholder-black/50 outline-none focus:border-white/40"
+  className="w-full rounded-xl !bg-white border border-white/20 px-3 py-2 text-sm !text-black caret-black placeholder-black/50 outline-none focus:border-white/40"
   placeholder="Email"
   autoComplete="email"
   value={email}
@@ -923,7 +923,7 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
 />
 
 <input
-  className="w-full rounded-xl bg-white border border-white/20 px-3 py-2 text-sm text-black placeholder-black/50 outline-none focus:border-white/40"
+  className="w-full rounded-xl !bg-white border border-white/20 px-3 py-2 text-sm !text-black caret-black placeholder-black/50 outline-none focus:border-white/40"
   placeholder="Password"
   type="password"
   autoComplete="current-password"
