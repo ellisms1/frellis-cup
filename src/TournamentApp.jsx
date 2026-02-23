@@ -915,14 +915,34 @@ function AuthModal({ open, onClose, onSignIn, onSignUp, loading, error }) {
     <Modal open={open} onClose={onClose} title="Sign in">
       <div className="space-y-3">
         <input
-          className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+          className="w-full rounded-xl 
+           bg-zinc-900 
+           border border-zinc-700 
+           px-3 py-2 
+           text-sm 
+           text-white 
+           placeholder-zinc-400 
+           outline-none 
+           focus:border-[#c8a96a] 
+           focus:ring-1 
+           focus:ring-[#c8a96a]"
           placeholder="Email"
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
-          className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+          className="w-full rounded-xl 
+           bg-zinc-900 
+           border border-zinc-700 
+           px-3 py-2 
+           text-sm 
+           text-white 
+           placeholder-zinc-400 
+           outline-none 
+           focus:border-[#c8a96a] 
+           focus:ring-1 
+           focus:ring-[#c8a96a]"
           placeholder="Password"
           type="password"
           autoComplete="current-password"
