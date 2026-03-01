@@ -467,76 +467,86 @@ const diff = entered - par;
     return { rows: duos, skins: { totalSkins: skins.totalSkins } };
   }
 
-  // Days 1 & 3: individuals ranked by total NET
-  const players = tournament.players || [];
+  // Days 1 & 3: individuals ranked by NET to-par (live)
+const players = tournament.players || [];
 
-  const rows = players.map((p) => {
-    const holesMap = {};
-    let grossTotal = 0;
-    let netTotal = 0;
-    let parPlayed = 0;
-    let playedAny = false;
+const rows = players.map((p) => {
+  const holesMap = {};
+  let grossTotal = 0;
+  let netTotal = 0;
 
-    for (let i = 0; i < holes.length; i++) {
-      const holeNum = i + 1;
-      const par = holes[i]?.par ?? 0;
-      const hcpRank = holes[i]?.hcpRank ?? 0;
-      const gross = findPlayerGrossForDay({ matchCards, playerId: p.id, holeNum });
+  let parPlayed = 0;     // ✅ only count par for holes actually played
+  let playedCount = 0;   // ✅ number of holes with a score
+  let playedAny = false;
 
-if (gross == null) {
-  holesMap[holeNum] = { display: "—", gross: null, net: null };
-  continue;
-}
+  for (let i = 0; i < holes.length; i++) {
+    const holeNum = i + 1;
+    const par = holes[i]?.par ?? 0;
+    const hcpRank = holes[i]?.hcpRank ?? 0;
 
-playedAny = true;
-parPlayed += par; // ✅ only count par when the hole is actually played
+    const gross = findPlayerGrossForDay({ matchCards, playerId: p.id, holeNum });
 
-const net = netScore(gross, p.courseHcp, hcpRank);
-
-grossTotal += gross;
-netTotal += net;
-
-      // show NET per-hole in the table cell
-      holesMap[holeNum] = { display: String(net), gross, net };
+    if (gross == null) {
+      holesMap[holeNum] = { display: "—", gross: null, net: null };
+      continue;
     }
 
-    const toPar = playedAny ? netTotal - parPlayed : null;
+    playedAny = true;
+    playedCount += 1;
+    parPlayed += par;
 
-    return {
-      key: p.id,
-      teamId: p.teamId,
-      name: p.name,
-      holes: holesMap,
-      grossTotal: playedAny ? grossTotal : null,
-      netTotal: playedAny ? netTotal : null,
-      toPar,
-      skinsWon: 0,
-    };
-  });
+    const net = netScore(gross, p.courseHcp, hcpRank);
 
-  const skins = computeSkinsDay13Net({ entries: rows, holesCount: holes.length });
+    grossTotal += gross;
+    netTotal += net;
 
-  for (const r of rows) {
-    r.skinsWon = skins.countByKey[r.key] || 0;
-
-    for (const [holeNumStr, winnerKey] of Object.entries(skins.winnerByHole)) {
-      const holeNum = Number(holeNumStr);
-      if (!Number.isFinite(holeNum)) continue;
-      if (r.holes?.[holeNum]) r.holes[holeNum].isSkin = winnerKey === r.key;
-    }
+    // show NET per-hole in the table cell
+    holesMap[holeNum] = { display: String(net), gross, net };
   }
 
-  // Rank: net asc, tiebreak gross asc
-  rows.sort((a, b) => {
-    const an = a.netTotal ?? Number.POSITIVE_INFINITY;
-    const bn = b.netTotal ?? Number.POSITIVE_INFINITY;
-    if (an !== bn) return an - bn;
-    const ag = a.grossTotal ?? Number.POSITIVE_INFINITY;
-    const bg = b.grossTotal ?? Number.POSITIVE_INFINITY;
-    return ag - bg;
-  });
+  const toPar = playedAny ? netTotal - parPlayed : null; // ✅ live to-par
 
-  return { rows, skins: { totalSkins: skins.totalSkins } };
+  return {
+    key: p.id,
+    teamId: p.teamId,
+    name: p.name,
+    holes: holesMap,
+    grossTotal: playedAny ? grossTotal : null,
+    netTotal: playedAny ? netTotal : null,
+    toPar,
+    playedCount, // ✅ used for tie-breaking
+    skinsWon: 0,
+  };
+});
+
+const skins = computeSkinsDay13Net({ entries: rows, holesCount: holes.length });
+
+for (const r of rows) {
+  r.skinsWon = skins.countByKey[r.key] || 0;
+
+  for (const [holeNumStr, winnerKey] of Object.entries(skins.winnerByHole)) {
+    const holeNum = Number(holeNumStr);
+    if (!Number.isFinite(holeNum)) continue;
+    if (r.holes?.[holeNum]) r.holes[holeNum].isSkin = winnerKey === r.key;
+  }
+}
+
+// ✅ Rank: toPar asc (lower better), then net asc, then holes played desc
+rows.sort((a, b) => {
+  const atp = a.toPar ?? Number.POSITIVE_INFINITY;
+  const btp = b.toPar ?? Number.POSITIVE_INFINITY;
+  if (atp !== btp) return atp - btp;
+
+  const an = a.netTotal ?? Number.POSITIVE_INFINITY;
+  const bn = b.netTotal ?? Number.POSITIVE_INFINITY;
+  if (an !== bn) return an - bn;
+
+  const ap = a.playedCount ?? 0;
+  const bp = b.playedCount ?? 0;
+  return bp - ap;
+});
+
+return { rows, skins: { totalSkins: skins.totalSkins } };
 }
 
 // -----------------------
