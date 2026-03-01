@@ -213,6 +213,9 @@ function netScore(gross, courseHcp, holeHcpRank) {
   return gross - sr;
 }
 
+// -----------------------
+// Match play status (Days 1 & 3, etc.)
+// -----------------------
 function matchStatusFromHoles(holes, sideAId, sideBId) {
   let a = 0;
   let b = 0;
@@ -230,8 +233,6 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
   const remaining = totalHoles - played;
   const diff = a - b;
   const abs = Math.abs(diff);
-
-  // "A" = sideA leading, "B" = sideB leading, "AS" = all square
   const leader = diff > 0 ? "A" : diff < 0 ? "B" : "AS";
 
   // Not started
@@ -243,26 +244,24 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
       isFinal: false,
       text: "Not Started",
       leaderSideId: null,
-      isTied: false, // <-- (optional) prefer neutral, not "tied"
+      isTied: false,
     };
   }
 
-  // Clinched early: abs > remaining means match is over
+  // Clinched early
   if (abs > remaining) {
-    const up = abs;
-    const toPlay = remaining;
     return {
       aHoles: a,
       bHoles: b,
       played,
       isFinal: true,
-      text: leader === "AS" ? "Final AS" : `Final ${up}&${toPlay}`,
+      text: leader === "AS" ? "Final AS" : `Final ${abs}&${remaining}`,
       leaderSideId: diff > 0 ? sideAId : sideBId,
       isTied: diff === 0,
     };
   }
 
-  // Finished all holes
+  // Finished
   if (played === totalHoles) {
     if (diff === 0) {
       return {
@@ -310,6 +309,9 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
   };
 }
 
+// -----------------------
+// Day 2 match status (Scramble Stableford) — show running totals like "12–9"
+// -----------------------
 function stablefordTotalsStatusFromHoles(matchHoles, sideAId, sideBId) {
   let aTotal = 0;
   let bTotal = 0;
@@ -347,7 +349,7 @@ function stablefordTotalsStatusFromHoles(matchHoles, sideAId, sideBId) {
   return {
     played,
     isFinal: played === 18,
-    text: `${aTotal}–${bTotal}`, // 👈 show only running totals
+    text: `${aTotal}–${bTotal}`, // show only running totals
     leaderSideId,
     isTied,
     aTotalPts: aTotal,
@@ -355,6 +357,9 @@ function stablefordTotalsStatusFromHoles(matchHoles, sideAId, sideBId) {
   };
 }
 
+// -----------------------
+// Points for overall team tally (match is still worth 1 point total)
+// -----------------------
 function pointsForFinalMatch(status, sideA, sideB) {
   if (!status.isFinal) return { [sideA.teamId]: 0, [sideB.teamId]: 0 };
 
@@ -368,581 +373,256 @@ function pointsForFinalMatch(status, sideA, sideB) {
 }
 
 // -----------------------
-// Broadcast Scoreboard (Days 1–3)
+// Broadcast Scoreboard helpers
 // -----------------------
-const SKINS_POOL_PER_DAY = 200;
-
-function formatMoney(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "$0";
-  return v.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+function formatToPar(n) {
+  if (n == null) return "E";
+  if (n === 0) return "E";
+  return n > 0 ? `+${n}` : `${n}`;
 }
 
-function holeNums(holes) {
-  const n = Array.isArray(holes) && holes.length ? holes.length : 18;
-  return Array.from({ length: n }, (_, i) => i + 1);
-}
+function computeBroadcastScoreboard({ tournament, day, totals, playersById }) {
+  const holes = tournament.courses?.[day]?.holes || [];
+  const daySummary = totals.daySummaries?.find((x) => x.day === day);
+  const matchCards = daySummary?.matchCards || [];
 
-function isDay2Stableford(dayNum) {
-  // Frellis Cup: Day 2 is the scramble stableford day
-  return Number(dayNum) === 2;
-}
+  // Day 2: duos ranked by total Stableford points
+  if (day === 2) {
+    const duos = [];
 
-function BroadcastScoreboard({ day, tournament, daySummary, playersById }) {
-  const holes = tournament?.courses?.[day]?.holes || [];
+    for (const mc of matchCards) {
+      const m = mc.match;
+      if (!m || m.format !== "SCRAMBLE_STABLEFORD") continue;
 
-  if (!daySummary) {
-    return (
-      <Card className="p-5">
-        <div className="text-white font-semibold">Scoreboard</div>
-        <div className="text-white/60 text-sm mt-2">No day data loaded yet.</div>
-      </Card>
-    );
-  }
+      for (const side of [m.sideA, m.sideB]) {
+        const pids = side.playerIds || [];
+        const n1 = playersById[pids[0]]?.name || "—";
+        const n2 = playersById[pids[1]]?.name || "—";
 
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-white font-semibold">Scoreboard</div>
-          <div className="text-white/60 text-xs mt-1">
-            Day {day} • {DAY_DATES?.[day] || ""}
-          </div>
-        </div>
-        <Pill>{isDay2Stableford(day) ? "Duos (Stableford)" : "Individuals (Net)"}</Pill>
-      </div>
+        const holesMap = {};
+        let totalPts = 0;
+        let totalStrokes = 0;
+        let parTotal = 0;
+        let playedAny = false;
 
-      <div className="mt-4">
-        {isDay2Stableford(day) ? (
-          <DuoStablefordScoreboard holes={holes} daySummary={daySummary} playersById={playersById} />
-        ) : (
-          <IndividualScoreboard holes={holes} daySummary={daySummary} playersById={playersById} />
-        )}
-      </div>
-    </Card>
-  );
-}
+        for (let i = 0; i < holes.length; i++) {
+          const holeNum = i + 1;
+          const par = holes[i]?.par ?? 0;
+          parTotal += par;
 
-// -----------------------
-// Days 1 & 3 — Individual (Net)
-// -----------------------
-function buildIndividualRows({ holes, daySummary, playersById }) {
-  const matches = (daySummary?.matchCards || []).map((c) => c.match).filter(Boolean);
-  const H = holeNums(holes);
+          // IMPORTANT: per your plan, entered scores are already handicap-adjusted.
+          // So: compare entered vs par directly for Stableford points.
+          const entered = m.scrambleGrossBySide?.[side.id]?.[holeNum] ?? null;
 
-  // Collect each player's per-hole gross from whatever match they are in that day.
-  // Supports SINGLES_NET and FOURBALL_NET (both store per-player gross by hole).
-  const byPlayer = new Map(); // pid -> { pid, name, courseHcp, grossByHole, netByHole }
+          if (entered == null) {
+            holesMap[holeNum] = { display: "—", pts: null, strokes: null };
+            continue;
+          }
 
-  function ensurePlayer(pid) {
-    if (!pid) return null;
-    const p = playersById?.[pid];
-    if (!p) return null;
+          playedAny = true;
+          const diff = entered - par;
+          const pts = stablefordFromDiff(diff);
 
-    if (!byPlayer.has(pid)) {
-      byPlayer.set(pid, {
-        pid,
-        name: p.name || "—",
-        teamId: p.teamId,
-        courseHcp: Number(p.courseHcp) || 0,
-        grossByHole: {},
-        netByHole: {},
-      });
-    }
-    return byPlayer.get(pid);
-  }
+          totalPts += pts;
+          totalStrokes += entered;
 
-  for (const m of matches) {
-    if (!m?.format) continue;
-
-    // Singles: one pid per side
-    if (m.format === "SINGLES_NET") {
-      const aPid = m.sideA?.playerIds?.[0];
-      const bPid = m.sideB?.playerIds?.[0];
-
-      for (const pid of [aPid, bPid]) {
-        const row = ensurePlayer(pid);
-        if (!row) continue;
-        for (const h of H) {
-          const gross = m.singlesGrossByPlayer?.[pid]?.[h] ?? null;
-          if (gross == null) continue;
-          row.grossByHole[h] = gross;
-          const meta = holes[h - 1] || { par: 0, hcpRank: 18 };
-          row.netByHole[h] = netScore(gross, row.courseHcp, meta.hcpRank);
+          holesMap[holeNum] = { display: String(pts), pts, strokes: entered };
         }
+
+        const toPar = playedAny ? totalStrokes - parTotal : null;
+
+        duos.push({
+          key: `${m.id}:${side.id}`,
+          teamId: side.teamId,
+          duoNames: [n1, n2],
+          holes: holesMap,
+          totalPts,
+          totalStrokes: playedAny ? totalStrokes : null,
+          toPar,
+          skinsWon: 0,
+        });
       }
-      continue;
     }
 
-    // Fourball: two pids per side
-    if (m.format === "FOURBALL_NET") {
-      const pids = [
-        ...(m.sideA?.playerIds || []),
-        ...(m.sideB?.playerIds || []),
-      ].filter(Boolean);
+    // Skins: unique best points on each hole
+    const skins = computeSkinsDay2Stableford({ entries: duos, holesCount: holes.length });
 
-      for (const pid of pids) {
-        const row = ensurePlayer(pid);
-        if (!row) continue;
-        for (const h of H) {
-          const gross = m.fourballGrossByPlayer?.[pid]?.[h] ?? null;
-          if (gross == null) continue;
-          row.grossByHole[h] = gross;
-          const meta = holes[h - 1] || { par: 0, hcpRank: 18 };
-          row.netByHole[h] = netScore(gross, row.courseHcp, meta.hcpRank);
-        }
+    // Apply skin flags + per-entry skin counts
+    for (const entry of duos) {
+      entry.skinsWon = skins.countByKey[entry.key] || 0;
+
+      for (const [holeNumStr, winnerKey] of Object.entries(skins.winnerByHole)) {
+        const holeNum = Number(holeNumStr);
+        if (!Number.isFinite(holeNum)) continue;
+        if (entry.holes?.[holeNum]) entry.holes[holeNum].isSkin = winnerKey === entry.key;
       }
-      continue;
     }
+
+    // Rank: points desc, tiebreak strokes asc
+    duos.sort((a, b) => {
+      const dp = (b.totalPts ?? 0) - (a.totalPts ?? 0);
+      if (dp !== 0) return dp;
+      const as = a.totalStrokes ?? Number.POSITIVE_INFINITY;
+      const bs = b.totalStrokes ?? Number.POSITIVE_INFINITY;
+      return as - bs;
+    });
+
+    return { rows: duos, skins: { totalSkins: skins.totalSkins } };
   }
 
-  // Compute totals + to-par
-  const rows = Array.from(byPlayer.values()).map((r) => {
+  // Days 1 & 3: individuals ranked by total NET
+  const players = tournament.players || [];
+
+  const rows = players.map((p) => {
+    const holesMap = {};
     let grossTotal = 0;
     let netTotal = 0;
-    let holesPlayed = 0;
-    let toPar = 0;
+    let parTotal = 0;
+    let playedAny = false;
 
-    for (const h of H) {
-      const g = r.grossByHole[h];
-      const n = r.netByHole[h];
-      if (g == null || n == null) continue;
-      holesPlayed += 1;
-      grossTotal += Number(g);
-      netTotal += Number(n);
-      const par = Number(holes[h - 1]?.par || 0);
-      toPar += Number(n) - par;
-    }
+    for (let i = 0; i < holes.length; i++) {
+      const holeNum = i + 1;
+      const par = holes[i]?.par ?? 0;
+      const hcpRank = holes[i]?.hcpRank ?? 0;
+      parTotal += par;
 
-    return {
-      ...r,
-      holesPlayed,
-      grossTotal: holesPlayed ? grossTotal : null,
-      netTotal: holesPlayed ? netTotal : null,
-      toPar: holesPlayed ? toPar : null,
-    };
-  });
+      const gross = findPlayerGrossForDay({ matchCards, playerId: p.id, holeNum });
 
-  // Rank: best net to-par (lower better), then more holes played, then net total, then gross total, then name
-  rows.sort((a, b) => {
-    const ap = a.toPar ?? 999999;
-    const bp = b.toPar ?? 999999;
-    if (ap !== bp) return ap - bp;
-
-    const ah = a.holesPlayed ?? 0;
-    const bh = b.holesPlayed ?? 0;
-    if (ah !== bh) return bh - ah;
-
-    const an = a.netTotal ?? 999999;
-    const bn = b.netTotal ?? 999999;
-    if (an !== bn) return an - bn;
-
-    const ag = a.grossTotal ?? 999999;
-    const bg = b.grossTotal ?? 999999;
-    if (ag !== bg) return ag - bg;
-
-    return String(a.name).localeCompare(String(b.name));
-  });
-
-  return rows;
-}
-
-function computeIndividualSkins({ holes, rows }) {
-  const H = holeNums(holes);
-
-  // Per hole: find unique lowest NET
-  const skinWinnersByHole = {}; // h -> pid
-  let totalSkins = 0;
-
-  for (const h of H) {
-    const scores = rows
-      .map((r) => ({ pid: r.pid, net: r.netByHole?.[h] ?? null }))
-      .filter((x) => x.net != null);
-
-    if (!scores.length) continue;
-
-    let best = Infinity;
-    for (const s of scores) best = Math.min(best, Number(s.net));
-
-    const bestOnes = scores.filter((s) => Number(s.net) === best);
-    if (bestOnes.length === 1) {
-      skinWinnersByHole[h] = bestOnes[0].pid;
-      totalSkins += 1;
-    }
-  }
-
-  return { skinWinnersByHole, totalSkins };
-}
-
-function applyWinningsToIndividualRows(rows, skinWinnersByHole, totalSkins) {
-  const perSkin = totalSkins > 0 ? SKINS_POOL_PER_DAY / totalSkins : 0;
-
-  const skinsWonByPid = {};
-  for (const h of Object.keys(skinWinnersByHole)) {
-    const pid = skinWinnersByHole[h];
-    if (!pid) continue;
-    skinsWonByPid[pid] = (skinsWonByPid[pid] || 0) + 1;
-  }
-
-  return rows.map((r) => {
-    const skinsWon = skinsWonByPid[r.pid] || 0;
-    return {
-      ...r,
-      skinsWon,
-      winnings: skinsWon * perSkin,
-    };
-  });
-}
-
-function IndividualScoreboard({ holes, daySummary, playersById }) {
-  const rows0 = React.useMemo(() => buildIndividualRows({ holes, daySummary, playersById }), [holes, daySummary, playersById]);
-  const { skinWinnersByHole, totalSkins } = React.useMemo(() => computeIndividualSkins({ holes, rows: rows0 }), [holes, rows0]);
-  const rows = React.useMemo(() => applyWinningsToIndividualRows(rows0, skinWinnersByHole, totalSkins), [rows0, skinWinnersByHole, totalSkins]);
-
-  const H = holeNums(holes);
-
-  // MOBILE (condensed)
-  return (
-    <>
-      <div className="md:hidden">
-        <div className="text-white/60 text-xs mb-3">
-          Ranks live by net to-par • Skins pool {formatMoney(SKINS_POOL_PER_DAY)} ({totalSkins || 0} skins)
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-white/60">
-                <th className="text-left py-2 pr-3">Player</th>
-                <th className="text-right py-2 px-2">Gross</th>
-                <th className="text-right py-2 px-2">Net (To Par)</th>
-                <th className="text-right py-2 pl-2">Winnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={r.pid} className="border-t border-white/10">
-                  <td className="py-3 pr-3">
-                    <div className="text-white font-medium">
-                      {idx + 1}. {r.name}
-                    </div>
-                    <div className="text-white/50 text-[11px]">
-                      {r.holesPlayed || 0}/18 holes
-                    </div>
-                  </td>
-                  <td className="py-3 px-2 text-right text-white/80">{r.grossTotal == null ? "—" : Math.round(r.grossTotal)}</td>
-                  <td className="py-3 px-2 text-right text-white/80">
-                    {r.netTotal == null
-                      ? "—"
-                      : `${Math.round(r.netTotal)} (${r.toPar > 0 ? `+${Math.round(r.toPar)}` : Math.round(r.toPar)})`}
-                  </td>
-                  <td className="py-3 pl-2 text-right text-white/80">{formatMoney(r.winnings || 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* DESKTOP (hole-by-hole scorecard) */}
-      <div className="hidden md:block">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-white/60 text-xs">
-            Ranks live by net to-par • Skins pool {formatMoney(SKINS_POOL_PER_DAY)} ({totalSkins || 0} skins)
-          </div>
-          <div className="text-white/50 text-[11px]">Green = skin (unique low net)</div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full text-sm">
-            <thead>
-              <tr className="text-white/60">
-                <th className="text-left py-2 pr-3 w-[260px]">Player</th>
-                {H.map((h) => (
-                  <th key={h} className="text-center py-2 px-1 w-[44px]">
-                    {h}
-                  </th>
-                ))}
-                <th className="text-right py-2 px-2">Gross</th>
-                <th className="text-right py-2 px-2">Net (To Par)</th>
-                <th className="text-right py-2 pl-2">Winnings</th>
-              </tr>
-              <tr className="text-white/40">
-                <th className="text-left pb-2 pr-3">Par</th>
-                {H.map((h) => (
-                  <th key={h} className="text-center pb-2 px-1">
-                    {holes[h - 1]?.par ?? "—"}
-                  </th>
-                ))}
-                <th />
-                <th />
-                <th />
-              </tr>
-            </thead>
-
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={r.pid} className="border-t border-white/10 hover:bg-white/5">
-                  <td className="py-3 pr-3">
-                    <div className="text-white font-medium">
-                      {idx + 1}. {r.name}
-                    </div>
-                    <div className="text-white/50 text-[11px]">{r.holesPlayed || 0}/18</div>
-                  </td>
-
-                  {H.map((h) => {
-                    const net = r.netByHole?.[h] ?? null;
-                    const isSkin = skinWinnersByHole?.[h] === r.pid;
-                    return (
-                      <td
-                        key={h}
-                        className={[
-                          "py-3 px-1 text-center",
-                          isSkin ? "bg-emerald-500/15 text-emerald-100" : "text-white/80",
-                        ].join(" ")}
-                      >
-                        {net == null ? "—" : net}
-                      </td>
-                    );
-                  })}
-
-                  <td className="py-3 px-2 text-right text-white/80">{r.grossTotal == null ? "—" : Math.round(r.grossTotal)}</td>
-                  <td className="py-3 px-2 text-right text-white/80">
-                    {r.netTotal == null
-                      ? "—"
-                      : `${Math.round(r.netTotal)} (${r.toPar > 0 ? `+${Math.round(r.toPar)}` : Math.round(r.toPar)})`}
-                  </td>
-                  <td className="py-3 pl-2 text-right text-white/80">{formatMoney(r.winnings || 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// -----------------------
-// Day 2 — Duos (Stableford)
-// -----------------------
-function buildDuoRows({ holes, daySummary, playersById }) {
-  const matches = (daySummary?.matchCards || []).map((c) => c.match).filter(Boolean);
-  const H = holeNums(holes);
-
-  // Each "duo" is a side in a scramble match.
-  const duos = []; // { duoId, names[], sideId, matchId, ptsByHole, totalPts, holesPlayed }
-
-  for (const m of matches) {
-    if (m?.format !== "SCRAMBLE_STABLEFORD") continue;
-
-    for (const side of [m.sideA, m.sideB]) {
-      if (!side?.id) continue;
-
-      const names = (side.playerIds || [])
-        .map((pid) => playersById?.[pid]?.name)
-        .filter(Boolean);
-
-      const ptsByHole = {};
-      let totalPts = 0;
-      let holesPlayed = 0;
-
-      for (const h of H) {
-        const gross = m.scrambleGrossBySide?.[side.id]?.[h] ?? null;
-        if (gross == null) continue;
-
-        const par = Number(holes[h - 1]?.par || 0);
-        const pts = stablefordFromDiff(Number(gross) - par);
-
-        ptsByHole[h] = pts;
-        totalPts += pts;
-        holesPlayed += 1;
+      if (gross == null) {
+        holesMap[holeNum] = { display: "—", gross: null, net: null };
+        continue;
       }
 
-      duos.push({
-        duoId: `${m.id}:${side.id}`,
-        matchId: m.id,
-        sideId: side.id,
-        teamId: side.teamId,
-        names: names.length ? names : ["—", "—"],
-        ptsByHole,
-        totalPts: holesPlayed ? totalPts : 0,
-        holesPlayed,
-      });
+      playedAny = true;
+      const net = netScore(gross, p.courseHcp, hcpRank);
+
+      grossTotal += gross;
+      netTotal += net;
+
+      // show NET per-hole in the table cell
+      holesMap[holeNum] = { display: String(net), gross, net };
+    }
+
+    const toPar = playedAny ? netTotal - parTotal : null;
+
+    return {
+      key: p.id,
+      teamId: p.teamId,
+      name: p.name,
+      holes: holesMap,
+      grossTotal: playedAny ? grossTotal : null,
+      netTotal: playedAny ? netTotal : null,
+      toPar,
+      skinsWon: 0,
+    };
+  });
+
+  const skins = computeSkinsDay13Net({ entries: rows, holesCount: holes.length });
+
+  for (const r of rows) {
+    r.skinsWon = skins.countByKey[r.key] || 0;
+
+    for (const [holeNumStr, winnerKey] of Object.entries(skins.winnerByHole)) {
+      const holeNum = Number(holeNumStr);
+      if (!Number.isFinite(holeNum)) continue;
+      if (r.holes?.[holeNum]) r.holes[holeNum].isSkin = winnerKey === r.key;
     }
   }
 
-  // Rank: higher points better, then more holes played, then name
-  duos.sort((a, b) => {
-    if (a.totalPts !== b.totalPts) return b.totalPts - a.totalPts;
-    if (a.holesPlayed !== b.holesPlayed) return b.holesPlayed - a.holesPlayed;
-    return (a.names.join(" / ")).localeCompare(b.names.join(" / "));
+  // Rank: net asc, tiebreak gross asc
+  rows.sort((a, b) => {
+    const an = a.netTotal ?? Number.POSITIVE_INFINITY;
+    const bn = b.netTotal ?? Number.POSITIVE_INFINITY;
+    if (an !== bn) return an - bn;
+    const ag = a.grossTotal ?? Number.POSITIVE_INFINITY;
+    const bg = b.grossTotal ?? Number.POSITIVE_INFINITY;
+    return ag - bg;
   });
 
-  return duos;
+  return { rows, skins: { totalSkins: skins.totalSkins } };
 }
 
-function computeDuoSkins({ holes, rows }) {
-  const H = holeNums(holes);
+function findPlayerGrossForDay({ matchCards, playerId, holeNum }) {
+  for (const mc of matchCards || []) {
+    const m = mc.match;
+    if (!m) continue;
 
-  // Per hole: find unique highest points
-  const skinWinnersByHole = {}; // h -> duoId
+    const inA = m.sideA?.playerIds?.includes(playerId);
+    const inB = m.sideB?.playerIds?.includes(playerId);
+    if (!inA && !inB) continue;
+
+    // Singles
+    const sg = m.singlesGrossByPlayer?.[playerId]?.[holeNum];
+    if (sg != null) return sg;
+
+    // Fourball
+    const fg = m.fourballGrossByPlayer?.[playerId]?.[holeNum];
+    if (fg != null) return fg;
+  }
+
+  return null;
+}
+
+function computeSkinsDay13Net({ entries, holesCount }) {
+  const winnerByHole = {};
+  const countByKey = {};
   let totalSkins = 0;
 
-  for (const h of H) {
-    const scores = rows
-      .map((r) => ({ duoId: r.duoId, pts: r.ptsByHole?.[h] ?? null }))
-      .filter((x) => x.pts != null);
+  for (let holeNum = 1; holeNum <= holesCount; holeNum++) {
+    let best = null; // { key, net }
+    let tie = false;
 
-    if (!scores.length) continue;
+    for (const e of entries) {
+      const net = e.holes?.[holeNum]?.net;
+      if (net == null) continue;
 
-    let best = -Infinity;
-    for (const s of scores) best = Math.max(best, Number(s.pts));
+      if (best == null || net < best.net) {
+        best = { key: e.key, net };
+        tie = false;
+      } else if (best && net === best.net) {
+        tie = true;
+      }
+    }
 
-    const bestOnes = scores.filter((s) => Number(s.pts) === best);
-    if (bestOnes.length === 1) {
-      skinWinnersByHole[h] = bestOnes[0].duoId;
+    if (best && !tie) {
+      winnerByHole[holeNum] = best.key;
+      countByKey[best.key] = (countByKey[best.key] || 0) + 1;
       totalSkins += 1;
     }
   }
 
-  return { skinWinnersByHole, totalSkins };
+  return { winnerByHole, countByKey, totalSkins };
 }
 
-function applyWinningsToDuoRows(rows, skinWinnersByHole, totalSkins) {
-  const perSkin = totalSkins > 0 ? SKINS_POOL_PER_DAY / totalSkins : 0;
+function computeSkinsDay2Stableford({ entries, holesCount }) {
+  const winnerByHole = {};
+  const countByKey = {};
+  let totalSkins = 0;
 
-  const skinsWonByDuo = {};
-  for (const h of Object.keys(skinWinnersByHole)) {
-    const duoId = skinWinnersByHole[h];
-    if (!duoId) continue;
-    skinsWonByDuo[duoId] = (skinsWonByDuo[duoId] || 0) + 1;
+  for (let holeNum = 1; holeNum <= holesCount; holeNum++) {
+    let best = null; // { key, pts }
+    let tie = false;
+
+    for (const e of entries) {
+      const pts = e.holes?.[holeNum]?.pts;
+      if (pts == null) continue;
+
+      if (best == null || pts > best.pts) {
+        best = { key: e.key, pts };
+        tie = false;
+      } else if (best && pts === best.pts) {
+        tie = true;
+      }
+    }
+
+    if (best && !tie) {
+      winnerByHole[holeNum] = best.key;
+      countByKey[best.key] = (countByKey[best.key] || 0) + 1;
+      totalSkins += 1;
+    }
   }
 
-  return rows.map((r) => {
-    const skinsWon = skinsWonByDuo[r.duoId] || 0;
-    return {
-      ...r,
-      skinsWon,
-      winnings: skinsWon * perSkin,
-    };
-  });
-}
-
-function DuoStablefordScoreboard({ holes, daySummary, playersById }) {
-  const rows0 = React.useMemo(() => buildDuoRows({ holes, daySummary, playersById }), [holes, daySummary, playersById]);
-  const { skinWinnersByHole, totalSkins } = React.useMemo(() => computeDuoSkins({ holes, rows: rows0 }), [holes, rows0]);
-  const rows = React.useMemo(() => applyWinningsToDuoRows(rows0, skinWinnersByHole, totalSkins), [rows0, skinWinnersByHole, totalSkins]);
-
-  const H = holeNums(holes);
-
-  return (
-    <>
-      {/* MOBILE */}
-      <div className="md:hidden">
-        <div className="text-white/60 text-xs mb-3">
-          Ranks live by Stableford points • Skins pool {formatMoney(SKINS_POOL_PER_DAY)} ({totalSkins || 0} skins)
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-white/60">
-                <th className="text-left py-2 pr-3">Duo</th>
-                <th className="text-right py-2 px-2">Points</th>
-                <th className="text-right py-2 pl-2">Winnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={r.duoId} className="border-t border-white/10">
-                  <td className="py-3 pr-3">
-                    <div className="text-white font-medium">
-                      {idx + 1}. {r.names?.[0] || "—"}
-                    </div>
-                    <div className="text-white/70 text-xs">{r.names?.[1] || ""}</div>
-                    <div className="text-white/50 text-[11px]">{r.holesPlayed || 0}/18 holes</div>
-                  </td>
-                  <td className="py-3 px-2 text-right text-white/80">{r.totalPts}</td>
-                  <td className="py-3 pl-2 text-right text-white/80">{formatMoney(r.winnings || 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* DESKTOP */}
-      <div className="hidden md:block">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-white/60 text-xs">
-            Ranks live by Stableford points • Skins pool {formatMoney(SKINS_POOL_PER_DAY)} ({totalSkins || 0} skins)
-          </div>
-          <div className="text-white/50 text-[11px]">Green = skin (unique best points)</div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full text-sm">
-            <thead>
-              <tr className="text-white/60">
-                <th className="text-left py-2 pr-3 w-[260px]">Duo</th>
-                {H.map((h) => (
-                  <th key={h} className="text-center py-2 px-1 w-[44px]">
-                    {h}
-                  </th>
-                ))}
-                <th className="text-right py-2 px-2">Total</th>
-                <th className="text-right py-2 pl-2">Winnings</th>
-              </tr>
-              <tr className="text-white/40">
-                <th className="text-left pb-2 pr-3">Par</th>
-                {H.map((h) => (
-                  <th key={h} className="text-center pb-2 px-1">
-                    {holes[h - 1]?.par ?? "—"}
-                  </th>
-                ))}
-                <th />
-                <th />
-              </tr>
-            </thead>
-
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={r.duoId} className="border-t border-white/10 hover:bg-white/5">
-                  <td className="py-3 pr-3">
-                    <div className="text-white font-medium">
-                      {idx + 1}. {r.names?.[0] || "—"}
-                    </div>
-                    <div className="text-white/70 text-xs">{r.names?.[1] || ""}</div>
-                    <div className="text-white/50 text-[11px]">{r.holesPlayed || 0}/18</div>
-                  </td>
-
-                  {H.map((h) => {
-                    const pts = r.ptsByHole?.[h] ?? null;
-                    const isSkin = skinWinnersByHole?.[h] === r.duoId;
-                    return (
-                      <td
-                        key={h}
-                        className={[
-                          "py-3 px-1 text-center",
-                          isSkin ? "bg-emerald-500/15 text-emerald-100" : "text-white/80",
-                        ].join(" ")}
-                      >
-                        {pts == null ? "—" : pts}
-                      </td>
-                    );
-                  })}
-
-                  <td className="py-3 px-2 text-right text-white/80">{r.totalPts}</td>
-                  <td className="py-3 pl-2 text-right text-white/80">{formatMoney(r.winnings || 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
+  return { winnerByHole, countByKey, totalSkins };
 }
 
 // -----------------------
@@ -3199,8 +2879,12 @@ function MatchView({ holes, match, computed, onJumpToHole }) {
 // -----------------------
 function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch, activeDay, setActiveDay }) {
   const day = activeDay;
-  const setDay = setActiveDay;
   const d = totals.daySummaries.find((x) => x.day === day);
+
+  // Scoreboard model (per day)
+  const sb = useMemo(() => {
+    return computeBroadcastScoreboard({ tournament, day, totals, playersById });
+  }, [tournament, day, totals, playersById]);
 
   return (
     <>
@@ -3222,38 +2906,36 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch, a
       />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Team totals */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatBlock label={TEAM.JC} value={totals.totalJC.toFixed(1)} logoSrc="/jc-logo.png" />
           <StatBlock label={TEAM.SG} value={totals.totalSG.toFixed(1)} logoSrc="/sg-logo.png" />
           <StatBlock label={`Day ${day}`} value={`${(d?.jc ?? 0).toFixed(1)}–${(d?.sg ?? 0).toFixed(1)}`} sub={DAY_DATES[day]} />
         </div>
 
+        {/* Day selector */}
         <div className="mt-4">
           <Segmented
             value={day}
-            onChange={setDay}
+            onChange={setActiveDay}
             options={(tournament.days || []).map((x) => ({
               value: x.day,
-              label: `Day ${x.day}`,
+              label: `Day ${x.day}`, // ✅ no "1 Day 1"
               icon: null,
             }))}
           />
         </div>
 
+        {/* Match tiles */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {(d?.matchCards || []).map((mc) => (
             <MatchCard key={mc.match.id} mc={mc} playersById={playersById} broadcast onOpen={() => onOpenMatch(mc.match.id)} />
           ))}
         </div>
 
-        {/* ✅ NEW: Scoreboard block */}
+        {/* Scoreboard */}
         <div className="mt-8">
-          <BroadcastScoreboard
-            day={day}
-            tournament={tournament}
-            daySummary={d}
-            playersById={playersById}
-          />
+          <BroadcastScoreboard day={day} tournament={tournament} scoreboard={sb} />
         </div>
       </div>
     </>
