@@ -402,25 +402,22 @@ function computeBroadcastScoreboard({ tournament, day, totals, playersById }) {
         const holesMap = {};
         let totalPts = 0;
         let totalStrokes = 0;
-        let parTotal = 0;
+        let parPlayed = 0;
         let playedAny = false;
 
         for (let i = 0; i < holes.length; i++) {
           const holeNum = i + 1;
           const par = holes[i]?.par ?? 0;
-          parTotal += par;
-
-          // IMPORTANT: per your plan, entered scores are already handicap-adjusted.
-          // So: compare entered vs par directly for Stableford points.
           const entered = m.scrambleGrossBySide?.[side.id]?.[holeNum] ?? null;
 
-          if (entered == null) {
-            holesMap[holeNum] = { display: "—", pts: null, strokes: null };
-            continue;
-          }
+if (entered == null) {
+  holesMap[holeNum] = { display: "—", pts: null, strokes: null };
+  continue;
+}
 
-          playedAny = true;
-          const diff = entered - par;
+playedAny = true;
+parPlayed += par; // ✅ only count par when played
+const diff = entered - par;
           const pts = stablefordFromDiff(diff);
 
           totalPts += pts;
@@ -429,7 +426,7 @@ function computeBroadcastScoreboard({ tournament, day, totals, playersById }) {
           holesMap[holeNum] = { display: String(pts), pts, strokes: entered };
         }
 
-        const toPar = playedAny ? totalStrokes - parTotal : null;
+        const toPar = playedAny ? totalStrokes - parPlayed : null;
 
         duos.push({
           key: `${m.id}:${side.id}`,
@@ -477,33 +474,33 @@ function computeBroadcastScoreboard({ tournament, day, totals, playersById }) {
     const holesMap = {};
     let grossTotal = 0;
     let netTotal = 0;
-    let parTotal = 0;
+    let parPlayed = 0;
     let playedAny = false;
 
     for (let i = 0; i < holes.length; i++) {
       const holeNum = i + 1;
       const par = holes[i]?.par ?? 0;
       const hcpRank = holes[i]?.hcpRank ?? 0;
-      parTotal += par;
-
       const gross = findPlayerGrossForDay({ matchCards, playerId: p.id, holeNum });
 
-      if (gross == null) {
-        holesMap[holeNum] = { display: "—", gross: null, net: null };
-        continue;
-      }
+if (gross == null) {
+  holesMap[holeNum] = { display: "—", gross: null, net: null };
+  continue;
+}
 
-      playedAny = true;
-      const net = netScore(gross, p.courseHcp, hcpRank);
+playedAny = true;
+parPlayed += par; // ✅ only count par when the hole is actually played
 
-      grossTotal += gross;
-      netTotal += net;
+const net = netScore(gross, p.courseHcp, hcpRank);
+
+grossTotal += gross;
+netTotal += net;
 
       // show NET per-hole in the table cell
       holesMap[holeNum] = { display: String(net), gross, net };
     }
 
-    const toPar = playedAny ? netTotal - parTotal : null;
+    const toPar = playedAny ? netTotal - parPlayed : null;
 
     return {
       key: p.id,
