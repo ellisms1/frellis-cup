@@ -172,6 +172,27 @@ const PHX_WEATHER_SNAPSHOT = {
   updatedNote: "Current Conditions In Phoenix",
 };
 
+// Phoenix-local tournament day auto-detect
+function getPhoenixTournamentDay() {
+  // Get YYYY-MM-DD in America/Phoenix regardless of user's device timezone
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Phoenix",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const d = parts.find((p) => p.type === "day")?.value;
+  const today = `${y}-${m}-${d}`; // e.g. "2026-03-06"
+
+  // Frellis Cup 2026 dates (Phoenix)
+  if (today <= "2026-03-05") return 1; // before or on Day 1
+  if (today === "2026-03-06") return 2; // Day 2
+  return 3; // Day 3 and beyond (2026-03-07+)
+}
+
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // -----------------------
@@ -204,6 +225,8 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
   let b = 0;
   let played = 0;
 
+  const totalHoles = Array.isArray(holes) && holes.length ? holes.length : 18;
+
   for (const h of holes) {
     if (!h.played) continue;
     played += 1;
@@ -211,25 +234,14 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
     else if (h.winnerSideId === sideBId) b += 1;
   }
 
-  const remaining = 18 - played;
+  const remaining = totalHoles - played;
   const diff = a - b;
   const abs = Math.abs(diff);
+
+  // "A" = sideA leading, "B" = sideB leading, "AS" = all square
   const leader = diff > 0 ? "A" : diff < 0 ? "B" : "AS";
 
-  if (abs > remaining && played > 0) {
-    const up = abs;
-    const toPlay = remaining;
-    return {
-      aHoles: a,
-      bHoles: b,
-      played,
-      isFinal: true,
-      text: leader === "AS" ? "Final (Tied)" : `Final ${up}&${toPlay}`,
-      leaderSideId: diff > 0 ? sideAId : sideBId,
-      isTied: false,
-    };
-  }
-
+  // Not started
   if (played === 0) {
     return {
       aHoles: 0,
@@ -238,18 +250,34 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
       isFinal: false,
       text: "Not Started",
       leaderSideId: null,
-      isTied: true,
+      isTied: false, // <-- (optional) prefer neutral, not "tied"
     };
   }
 
-  if (played === 18) {
+  // Clinched early: abs > remaining means match is over
+  if (abs > remaining) {
+    const up = abs;
+    const toPlay = remaining;
+    return {
+      aHoles: a,
+      bHoles: b,
+      played,
+      isFinal: true,
+      text: leader === "AS" ? "Final AS" : `Final ${up}&${toPlay}`,
+      leaderSideId: diff > 0 ? sideAId : sideBId,
+      isTied: diff === 0,
+    };
+  }
+
+  // Finished all holes
+  if (played === totalHoles) {
     if (diff === 0) {
       return {
         aHoles: a,
         bHoles: b,
         played,
         isFinal: true,
-        text: "Final (Tied)",
+        text: "Final AS",
         leaderSideId: null,
         isTied: true,
       };
@@ -265,6 +293,7 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
     };
   }
 
+  // In progress
   if (diff === 0) {
     return {
       aHoles: a,
@@ -764,7 +793,7 @@ function StatBlock({ label, value, sub, logoSrc, leadTeam = null }) {
           <div className="flex-1 flex items-center justify-center">
             {leadTeam === "TIED" ? (
               <div className="text-white text-7xl md:text-8xl font-extrabold tracking-tight">
-                AS
+                A/S
               </div>
             ) : logoSrc ? (
               <img
@@ -1122,7 +1151,7 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
   const [matches, setMatches] = useState([]);
 
   const [route, setRoute] = useState({ name: "home" });
-  const [activeDay, setActiveDay] = useState(1);
+  const [activeDay, setActiveDay] = useState(() => getPhoenixTournamentDay());
 
   // Live subscriptions
   useEffect(() => {
@@ -1381,6 +1410,8 @@ export default function TournamentApp({ tournamentId = "frellis-cup-2026", fbUse
           playersById={playersById}
           onExit={() => setRoute({ name: "home" })}
           onOpenMatch={(matchId) => setRoute({ name: "match", matchId })}
+          activeDay={activeDay}
+          setActiveDay={setActiveDay}
         />
       );
     }
@@ -1476,7 +1507,7 @@ function HomePage({
   onOpenClaim,
 }) {
   const leader =
-    totals.totalJC === totals.totalSG ? "Tied" : totals.totalJC > totals.totalSG ? TEAM_ABBR.JC : TEAM_ABBR.SG;
+  totals.totalJC === totals.totalSG ? "TIED" : totals.totalJC > totals.totalSG ? "JC" : "SG";
 
   const me = claimedPlayerId ? playersById[claimedPlayerId] : null;
   const daySummary = totals.daySummaries.find((d) => d.day === activeDay);
@@ -2583,10 +2614,11 @@ function MatchView({ holes, match, computed, onJumpToHole }) {
 // -----------------------
 // Broadcast
 // -----------------------
-function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch }) {
-  const [day, setDay] = useState(1);
+function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch, activeDay, setActiveDay }) {
+  const day = activeDay;
+  const setDay = setActiveDay;
   const d = totals.daySummaries.find((x) => x.day === day);
-
+  
   return (
     <>
       <TopBar
