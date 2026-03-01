@@ -542,6 +542,234 @@ function computeBroadcastScoreboard({ tournament, day, totals, playersById }) {
   return { rows, skins: { totalSkins: skins.totalSkins } };
 }
 
+// -----------------------
+// Broadcast Scoreboard UI
+// -----------------------
+const SKINS_POOL = 200;
+
+function money(n) {
+  if (!Number.isFinite(n)) return "—";
+  return `$${n.toFixed(0)}`;
+}
+
+function NamePill({ teamId, children }) {
+  const tone =
+    teamId === "JC"
+      ? "bg-red-500/15 border-red-400/25 text-red-50"
+      : teamId === "SG"
+      ? "bg-yellow-400/15 border-yellow-300/25 text-yellow-50"
+      : "bg-white/5 border-white/10 text-white/90";
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${tone}`}>
+      {children}
+    </div>
+  );
+}
+
+function BroadcastScoreboard({ tournament, totals, playersById, day }) {
+  const sb = computeBroadcastScoreboard({ tournament, day, totals, playersById });
+  const rows = sb?.rows || [];
+  const totalSkins = sb?.skins?.totalSkins || 0;
+
+  const skinValue = totalSkins > 0 ? SKINS_POOL / totalSkins : 0;
+
+  // desktop shows holes; mobile shows summary columns only
+  const isDay2 = day === 2;
+  const holes = tournament.courses?.[day]?.holes || [];
+  const holesCount = holes.length || 18;
+
+  return (
+    <Card className="p-5 mt-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-white font-semibold">Scoreboard</div>
+          <div className="text-white/60 text-xs mt-1">
+            Skins pool: {money(SKINS_POOL)} • {totalSkins} skins • {totalSkins ? `${money(skinValue)} per skin` : "No skins yet"}
+          </div>
+        </div>
+        <Pill>{isDay2 ? "Day 2 • Duos" : "Day " + day + " • Individuals"}</Pill>
+      </div>
+
+      {/* MOBILE (simple) */}
+      <div className="mt-4 block md:hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-white/60 text-xs border-b border-white/10">
+                <th className="text-left py-2 pr-2">#</th>
+                <th className="text-left py-2 pr-2">{isDay2 ? "Duo" : "Player"}</th>
+                {isDay2 ? (
+                  <>
+                    <th className="text-right py-2 pr-2">Pts</th>
+                    <th className="text-right py-2 pr-2">Score</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="text-right py-2 pr-2">Gross</th>
+                    <th className="text-right py-2 pr-2">Net</th>
+                  </>
+                )}
+                <th className="text-right py-2">Winnings</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((r, idx) => {
+                const winnings = (r.skinsWon || 0) * skinValue;
+
+                return (
+                  <tr key={r.key} className="border-b border-white/10">
+                    <td className="py-2 pr-2 text-white/70">{idx + 1}</td>
+
+                    <td className="py-2 pr-2">
+                      <NamePill teamId={r.teamId}>
+                        {isDay2 ? (
+                          <div className="leading-tight">
+                            <div className="text-white font-semibold">{r.duoNames?.[0] || "—"}</div>
+                            <div className="text-white font-semibold">{r.duoNames?.[1] || "—"}</div>
+                          </div>
+                        ) : (
+                          <div className="text-white font-semibold">{r.name || "—"}</div>
+                        )}
+                      </NamePill>
+                    </td>
+
+                    {isDay2 ? (
+                      <>
+                        <td className="py-2 pr-2 text-right text-white font-semibold">{r.totalPts ?? "—"}</td>
+                        <td className="py-2 pr-2 text-right text-white/90">
+                          {r.totalStrokes == null ? "—" : `${r.totalStrokes} (${formatToPar(r.toPar)})`}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-2 pr-2 text-right text-white/90">{r.grossTotal ?? "—"}</td>
+                        <td className="py-2 pr-2 text-right text-white font-semibold">
+                          {r.netTotal == null ? "—" : `${r.netTotal} (${formatToPar(r.toPar)})`}
+                        </td>
+                      </>
+                    )}
+
+                    <td className="py-2 text-right text-white font-semibold">{money(winnings)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* DESKTOP (full scorecard-ish) */}
+      <div className="mt-4 hidden md:block">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1200px] w-full text-sm">
+            <thead>
+              <tr className="text-white/60 text-[11px] border-b border-white/10">
+                <th className="text-left py-2 pr-2 w-10">#</th>
+                <th className="text-left py-2 pr-3 w-[220px]">{isDay2 ? "Duo" : "Player"}</th>
+
+                {/* Holes */}
+                {Array.from({ length: holesCount }, (_, i) => {
+                  const h = holes[i];
+                  return (
+                    <th key={i} className="text-center py-2 px-1 w-9">
+                      <div className="text-white/70">{i + 1}</div>
+                      <div className="text-white/35">{h?.par ?? "—"}</div>
+                    </th>
+                  );
+                })}
+
+                {/* Totals */}
+                {isDay2 ? (
+                  <>
+                    <th className="text-right py-2 pl-3 w-20">Pts</th>
+                    <th className="text-right py-2 pl-3 w-28">Score</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="text-right py-2 pl-3 w-20">Gross</th>
+                    <th className="text-right py-2 pl-3 w-28">Net</th>
+                  </>
+                )}
+                <th className="text-right py-2 pl-3 w-28">Winnings</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((r, idx) => {
+                const winnings = (r.skinsWon || 0) * skinValue;
+
+                return (
+                  <tr key={r.key} className="border-b border-white/10">
+                    <td className="py-2 pr-2 text-white/70">{idx + 1}</td>
+
+                    <td className="py-2 pr-3">
+                      <NamePill teamId={r.teamId}>
+                        {isDay2 ? (
+                          <div className="leading-tight">
+                            <div className="text-white font-semibold">{r.duoNames?.[0] || "—"}</div>
+                            <div className="text-white font-semibold">{r.duoNames?.[1] || "—"}</div>
+                          </div>
+                        ) : (
+                          <div className="text-white font-semibold">{r.name || "—"}</div>
+                        )}
+                      </NamePill>
+                    </td>
+
+                    {Array.from({ length: holesCount }, (_, i) => {
+                      const holeNum = i + 1;
+                      const cell = r.holes?.[holeNum];
+                      const text = cell?.display ?? "—";
+                      const isSkin = !!cell?.isSkin;
+
+                      return (
+                        <td key={holeNum} className="py-2 px-1 text-center">
+                          <div
+                            className={[
+                              "mx-auto w-8 h-8 rounded-lg border flex items-center justify-center text-[12px] font-semibold",
+                              isSkin ? "bg-emerald-500/20 border-emerald-400/25 text-emerald-50" : "bg-white/5 border-white/10 text-white/85",
+                            ].join(" ")}
+                            title={isSkin ? "Skin" : ""}
+                          >
+                            {text}
+                          </div>
+                        </td>
+                      );
+                    })}
+
+                    {isDay2 ? (
+                      <>
+                        <td className="py-2 pl-3 text-right text-white font-semibold">{r.totalPts ?? "—"}</td>
+                        <td className="py-2 pl-3 text-right text-white/90">
+                          {r.totalStrokes == null ? "—" : `${r.totalStrokes} (${formatToPar(r.toPar)})`}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-2 pl-3 text-right text-white/90">{r.grossTotal ?? "—"}</td>
+                        <td className="py-2 pl-3 text-right text-white font-semibold">
+                          {r.netTotal == null ? "—" : `${r.netTotal} (${formatToPar(r.toPar)})`}
+                        </td>
+                      </>
+                    )}
+
+                    <td className="py-2 pl-3 text-right text-white font-semibold">{money(winnings)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-3 text-white/50 text-xs">
+          Green cells = skins (unique best hole score). Day 1/3 = best **net** on hole. Day 2 = best **stableford points** on hole.
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function findPlayerGrossForDay({ matchCards, playerId, holeNum }) {
   for (const mc of matchCards || []) {
     const m = mc.match;
@@ -2935,7 +3163,12 @@ function BroadcastPage({ tournament, totals, playersById, onExit, onOpenMatch, a
 
         {/* Scoreboard */}
         <div className="mt-8">
-          <BroadcastScoreboard day={day} tournament={tournament} scoreboard={sb} />
+          <BroadcastScoreboard
+            day={day}
+            tournament={tournament}
+            totals={totals}
+            playersById={playersById}
+              />
         </div>
       </div>
     </>
