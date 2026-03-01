@@ -54,7 +54,7 @@ const PHX_LON = -112.074;
 
 function weatherCodeToText(code) {
   // Open-Meteo weather codes
-  // https://open-meteo.com/en/docs (Weather interpretation codes) :contentReference[oaicite:2]{index=2}
+  // https://open-meteo.com/en/docs (Weather interpretation codes)
   const c = Number(code);
   if (!Number.isFinite(c)) return "—";
 
@@ -97,14 +97,14 @@ function usePhoenixWeather() {
 
     async function fetchWx() {
       try {
-        // Open-Meteo "current" variables. No key required. :contentReference[oaicite:3]{index=3}
+        // Open-Meteo "current" variables. No key required.
         const url =
           `https://api.open-meteo.com/v1/forecast` +
           `?latitude=${PHX_LAT}` +
           `&longitude=${PHX_LON}` +
           `&current=temperature_2m,weather_code` +
           `&temperature_unit=fahrenheit` +
-          `&timezone=America%2FNew_York`;
+          `&timezone=America%2FPhoenix`;
 
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Weather HTTP ${res.status}`);
@@ -163,13 +163,6 @@ const TEAM_ABBR = {
 const TEAM_COLOR = {
   JC: "bg-red-500/20 text-red-100 border-red-400/30",
   SG: "bg-yellow-400/20 text-yellow-100 border-yellow-300/30",
-};
-
-// Temporary weather snapshot (pre-live API)
-const PHX_WEATHER_SNAPSHOT = {
-  condition: "Sunny",
-  tempF: 74,
-  updatedNote: "Current Conditions In Phoenix",
 };
 
 // Phoenix-local tournament day auto-detect
@@ -1518,6 +1511,8 @@ function HomePage({
         .find((m) => m.sideA.playerIds.includes(me.id) || m.sideB.playerIds.includes(me.id))
     : null;
 
+  const wx = usePhoenixWeather();
+  
   return (
     <>
       <TopBar
@@ -1598,19 +1593,29 @@ function HomePage({
             </div>
 
             <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-              <div className="text-white/70 text-xs">Today</div>
-              <div className="text-white text-sm font-medium mt-1">
-                Day {activeDay} • {DAY_DATES[activeDay]}
-              </div>
-              <div className="text-white/70 text-xs mt-1">
-                {tournament.courses?.[activeDay]?.name} • {tournament.courses?.[activeDay]?.city}
-              </div>
-              <div className="mt-3 text-white/80 text-sm">
-                <span className="text-white/60">Weather:</span> {PHX_WEATHER_SNAPSHOT.condition} •{" "}
-                {PHX_WEATHER_SNAPSHOT.tempF}°F
-              </div>
-              <div className="text-white/50 text-[11px] mt-1">{PHX_WEATHER_SNAPSHOT.updatedNote}</div>
+            <div className="text-white/70 text-xs">Today</div>
+
+            <div className="text-white text-sm font-medium mt-1">
+              Day {activeDay} • {DAY_DATES[activeDay]}
             </div>
+
+            <div className="text-white/70 text-xs mt-1">
+              {tournament.courses?.[activeDay]?.name} • {tournament.courses?.[activeDay]?.city}
+            </div>
+
+            <div className="mt-3 text-white/80 text-sm">
+              <span className="text-white/60">Weather:</span>{" "}
+              {wx.loading
+                ? "Loading…"
+                : wx.error
+                ? "Unavailable"
+                : `${wx.condition} • ${wx.tempF ?? "—"}°F`}
+            </div>
+
+            <div className="text-white/50 text-[11px] mt-1">
+              {wx.updatedNote}
+          </div>
+        </div>
 
             <div className="mt-4">
               {userId ? (
