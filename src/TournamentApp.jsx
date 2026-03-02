@@ -944,7 +944,7 @@ const COURSES = {
 // Local fallback tournament (used only if Firestore empty)
 // -----------------------
 const SAMPLE_ROSTER_SLOTS = [
-  { id: "slot-jc-1", teamId: "JC", name: "Matthew Ellis (C)", courseHcp: 13 },
+  { id: "slot-jc-1", teamId: "JC", name: "Matt Ellis (C)", courseHcp: 13 },
   { id: "slot-jc-2", teamId: "JC", name: "Jason Franklin", courseHcp: 8 },
   { id: "slot-jc-3", teamId: "JC", name: "Ben Ellis", courseHcp: 12 },
   { id: "slot-jc-4", teamId: "JC", name: "Anthony Heinrichs", courseHcp: 4 },
