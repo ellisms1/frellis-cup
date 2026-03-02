@@ -1599,6 +1599,55 @@ function HoleStrip({ mc }) {
   );
 }
 
+function HoleStripDay2({ mc }) {
+  let diff = 0;
+
+  const cells = (mc.holes || []).slice(0, 18).map((h, idx) => {
+    const holeNum = idx + 1;
+
+    if (!h.played) {
+      return { bg: "bg-white/10", txt: "", title: `Hole ${holeNum}: Not Played` };
+    }
+
+    const aPts = h.details?.type === "scramble" ? h.details?.aPts : null;
+    const bPts = h.details?.type === "scramble" ? h.details?.bPts : null;
+
+    if (aPts == null || bPts == null) {
+      return { bg: "bg-white/10", txt: "", title: `Hole ${holeNum}: Not Scored` };
+    }
+
+    diff += (Number(aPts) || 0) - (Number(bPts) || 0);
+
+    const bg =
+      diff > 0 ? "bg-red-500/40"
+      : diff < 0 ? "bg-yellow-400/40"
+      : "bg-white/15";
+
+    const txt = diff === 0 ? "" : String(Math.abs(diff));
+
+    return {
+      bg,
+      txt,
+      title: `Hole ${holeNum}: ${aPts}–${bPts} (Running diff ${diff})`,
+    };
+  });
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="inline-flex whitespace-nowrap flex-nowrap gap-1">
+        {cells.map((c, idx) => (
+          <div
+            key={idx}
+            className={`w-6 h-6 rounded-md ${c.bg} border border-white/10 flex items-center justify-center text-[11px] font-semibold`}
+          >
+            <span className="text-white/90">{c.txt}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // -----------------------
 // Main App
 // Props expected from App.jsx:
@@ -2263,7 +2312,11 @@ function HomePage({
                     <Pill tone={statusPillTone(mc.status, mc.match)}>{mc.status.text}</Pill>
                   </div>
                   <div className="mt-3">
-                    <HoleStrip mc={mc} />
+                    {mc.match.format === "SCRAMBLE_STABLEFORD" ? (
+              <HoleStripDay2 mc={mc} />
+                ) : (
+              <HoleStrip mc={mc} />
+                )}
                   </div>
                 </div>
               ))}
@@ -2560,7 +2613,11 @@ function MatchCard({ mc, playersById, onOpen, broadcast = false }) {
         {broadcast ? (
           <div className="mt-4 p-3 rounded-2xl bg-white/5 border border-white/10">
             <div className="text-white/60 text-xs mb-2">Holes</div>
-            <HoleStrip mc={mc} />
+            {mc.match.format === "SCRAMBLE_STABLEFORD" ? (
+          <HoleStripDay2 mc={mc} />
+            ) : (
+          <HoleStrip mc={mc} />
+            )}
           </div>
         ) : null}
 
