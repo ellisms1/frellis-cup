@@ -189,6 +189,44 @@ function getPhoenixTournamentDay() {
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // -----------------------
+// Scoring helpers
+// -----------------------
+
+function stablefordFromDiff(diff) {
+  if (diff <= -3) return 10;
+  if (diff === -2) return 6;
+  if (diff === -1) return 3;
+  if (diff === 0) return 1;
+  if (diff === 1) return -1;
+  return -2;
+}
+
+// -----------------------
+// Handicap / Net helpers
+// -----------------------
+function strokesReceivedOnHole(courseHcp, holeHcpRank) {
+  const hcp = Number(courseHcp) || 0;
+  const rank = Number(holeHcpRank) || 0;
+
+  const full = Math.floor(hcp / 18);
+  const rem = hcp % 18;
+
+  // ranks are 1..18 (lower rank = harder hole)
+  const extra = rank > 0 && rank <= rem ? 1 : 0;
+
+  return full + extra;
+}
+
+function netScore(gross, courseHcp, holeHcpRank) {
+  if (gross == null) return null;
+  const g = Number(gross);
+  if (!Number.isFinite(g)) return null;
+
+  const sr = strokesReceivedOnHole(courseHcp, holeHcpRank);
+  return g - sr;
+}
+
+// -----------------------
 // Match play status (Days 1 & 3, etc.) — "clinch locks" the final
 // We still allow entering holes after the match is decided,
 // but the displayed final result stays the clinch score (e.g. 4&3).
