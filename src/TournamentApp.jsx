@@ -1534,27 +1534,52 @@ function NumberStepper({ value, onChange, min = 1, max = 12, disabled }) {
 }
 
 function HoleStrip({ mc }) {
+  // running match lead (JC = +, SG = -)
   let diff = 0;
 
-  const cells = mc.holes.slice(0, 18).map((h, idx) => {
-    if (!h.played) return { bg: "bg-white/10", txt: "", title: `Hole ${idx + 1}: Not Played` };
+  const aId = mc?.match?.sideA?.id; // JC side id
+  const bId = mc?.match?.sideB?.id; // SG side id
 
-    if (h.winnerSideId == null) {
-      const lead = diff === 0 ? "AS" : diff > 0 ? `JCGC ${diff} Up` : `SGC ${Math.abs(diff)} Up`;
+  const cells = (mc.holes || []).slice(0, 18).map((h, idx) => {
+    const holeNum = idx + 1;
+
+    // Not played yet
+    if (!h.played) {
       return {
-        bg: "bg-white/15",
-        txt: diff === 0 ? "0" : String(Math.abs(diff)),
-        title: `Hole ${idx + 1}: Halved (Match ${lead})`,
+        bg: "bg-white/10",
+        txt: "",
+        title: `Hole ${holeNum}: Not Played`,
       };
     }
 
-    if (h.winnerSideId.endsWith("-A")) diff += 1;
-    else diff -= 1;
+    // Update diff only if someone won the hole
+    if (h.winnerSideId != null) {
+      if (h.winnerSideId === aId) diff += 1;
+      else if (h.winnerSideId === bId) diff -= 1;
+    }
 
-    const bg = diff > 0 ? "bg-red-500/40" : diff < 0 ? "bg-yellow-400/40" : "bg-white/15";
+    // AFTER this hole, color based on who is currently winning
+    const bg =
+      diff > 0 ? "bg-red-500/40" : diff < 0 ? "bg-yellow-400/40" : "bg-white/15";
+
+    // Number should be the lead size (0 if AS)
     const txt = diff === 0 ? "0" : String(Math.abs(diff));
-    const lead = diff === 0 ? "AS" : diff > 0 ? `JCGC ${diff} Up` : `SGC ${Math.abs(diff)} Up`;
-    return { bg, txt, title: `Hole ${idx + 1}: ${lead}` };
+
+    const lead =
+      diff === 0 ? "AS" : diff > 0 ? `JCGC ${Math.abs(diff)} Up` : `SGC ${Math.abs(diff)} Up`;
+
+    const holeResult =
+      h.winnerSideId == null
+        ? "Halved"
+        : h.winnerSideId === aId
+        ? "JCGC won"
+        : "SGC won";
+
+    return {
+      bg,
+      txt,
+      title: `Hole ${holeNum}: ${holeResult} (Match ${lead})`,
+    };
   });
 
   return (
