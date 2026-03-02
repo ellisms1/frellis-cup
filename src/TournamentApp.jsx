@@ -189,32 +189,9 @@ function getPhoenixTournamentDay() {
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // -----------------------
-// Scoring helpers
-// -----------------------
-function stablefordFromDiff(diff) {
-  if (diff <= -3) return 10;
-  if (diff === -2) return 6;
-  if (diff === -1) return 3;
-  if (diff === 0) return 1;
-  if (diff === 1) return -1;
-  return -2;
-}
-
-function strokesReceivedOnHole(courseHcp, holeHcpRank) {
-  const full = Math.floor(courseHcp / 18);
-  const rem = courseHcp % 18;
-  const extra = holeHcpRank <= rem ? 1 : 0;
-  return full + extra;
-}
-
-function netScore(gross, courseHcp, holeHcpRank) {
-  if (gross == null) return null;
-  const sr = strokesReceivedOnHole(courseHcp, holeHcpRank);
-  return gross - sr;
-}
-
-// -----------------------
-// Match play status (Days 1 & 3, etc.)
+// Match play status (Days 1 & 3, etc.) — "clinch locks" the final
+// We still allow entering holes after the match is decided,
+// but the displayed final result stays the clinch score (e.g. 4&3).
 // -----------------------
 function matchStatusFromHoles(holes, sideAId, sideBId) {
   let a = 0;
@@ -223,17 +200,39 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
 
   const totalHoles = Array.isArray(holes) && holes.length ? holes.length : 18;
 
-  for (const h of holes) {
-    if (!h.played) continue;
+  // Track the earliest clinch moment (if any)
+  // clinchedAt = hole number when the match was first decided
+  // clinchUp / clinchToPlay = the "X&Y" at that moment
+  let clinchedAt = null;
+  let clinchLeader = "AS"; // "A" | "B" | "AS"
+  let clinchUp = 0;
+  let clinchToPlay = 0;
+
+  // Evaluate holes in order so we can capture the first clinch moment
+  for (let i = 0; i < holes.length; i++) {
+    const h = holes[i];
+    const holeNum = i + 1;
+
+    if (!h?.played) continue;
+
     played += 1;
+
     if (h.winnerSideId === sideAId) a += 1;
     else if (h.winnerSideId === sideBId) b += 1;
-  }
 
-  const remaining = totalHoles - played;
-  const diff = a - b;
-  const abs = Math.abs(diff);
-  const leader = diff > 0 ? "A" : diff < 0 ? "B" : "AS";
+    const remaining = totalHoles - played;
+    const diff = a - b;
+    const abs = Math.abs(diff);
+    const leader = diff > 0 ? "A" : diff < 0 ? "B" : "AS";
+
+    // Clinched once abs > remaining. Capture the FIRST time only.
+    if (clinchedAt == null && played > 0 && abs > remaining) {
+      clinchedAt = holeNum;
+      clinchLeader = leader;
+      clinchUp = abs;
+      clinchToPlay = remaining;
+    }
+  }
 
   // Not started
   if (played === 0) {
@@ -248,20 +247,29 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
     };
   }
 
-  // Clinched early
-  if (abs > remaining) {
+  // If match was clinched at some point, lock final display to that clinch
+  if (clinchedAt != null) {
+    const leaderSideId = clinchLeader === "A" ? sideAId : clinchLeader === "B" ? sideBId : null;
+
     return {
       aHoles: a,
       bHoles: b,
       played,
       isFinal: true,
-      text: leader === "AS" ? "Final AS" : `Final ${abs}&${remaining}`,
-      leaderSideId: diff > 0 ? sideAId : sideBId,
-      isTied: diff === 0,
+      // You can change this text if you prefer "Final 4&3" etc.
+      text: clinchLeader === "AS" ? "Final AS" : `Final ${clinchUp}&${clinchToPlay}`,
+      leaderSideId,
+      isTied: clinchLeader === "AS",
+      clinchedAtHole: clinchedAt, // optional debugging/useful metadata
     };
   }
 
-  // Finished
+  // If NOT clinched, compute current live status normally
+  const diff = a - b;
+  const abs = Math.abs(diff);
+  const leaderSideId = diff > 0 ? sideAId : diff < 0 ? sideBId : null;
+
+  // Finished all holes (no clinch means it came down to 18)
   if (played === totalHoles) {
     if (diff === 0) {
       return {
@@ -280,7 +288,7 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
       played,
       isFinal: true,
       text: `Final ${abs} Up`,
-      leaderSideId: diff > 0 ? sideAId : sideBId,
+      leaderSideId,
       isTied: false,
     };
   }
@@ -304,7 +312,7 @@ function matchStatusFromHoles(holes, sideAId, sideBId) {
     played,
     isFinal: false,
     text: `${abs} Up Thru ${played}`,
-    leaderSideId: diff > 0 ? sideAId : sideBId,
+    leaderSideId,
     isTied: false,
   };
 }
