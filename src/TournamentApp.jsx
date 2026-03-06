@@ -1375,21 +1375,29 @@ function MatchFormatPill({ format }) {
 }
 
 function statusPillTone(status, match) {
-  // Final tied match
-  if (status.isFinal && status.isTied) return "warn";
+  // Final tied match → green
+  if (status.isFinal && status.isTied) return "final";
 
-  // Final winner: use winning team color
+  // Final winner → team color
   if (status.isFinal && status.leaderSideId) {
-    const winnerTeam = status.leaderSideId === match.sideA.id ? match.sideA.teamId : match.sideB.teamId;
+    const winnerTeam =
+      status.leaderSideId === match.sideA.id
+        ? match.sideA.teamId
+        : match.sideB.teamId;
+
     return winnerTeam === "JC" ? "jcLead" : "sgLead";
   }
 
-  // In progress tied
+  // In-progress tied
   if (status.isTied) return "neutral";
 
-  // In progress leader
+  // In-progress leader
   if (status.leaderSideId) {
-    const leaderTeam = status.leaderSideId === match.sideA.id ? match.sideA.teamId : match.sideB.teamId;
+    const leaderTeam =
+      status.leaderSideId === match.sideA.id
+        ? match.sideA.teamId
+        : match.sideB.teamId;
+
     return leaderTeam === "JC" ? "jcLead" : "sgLead";
   }
 
