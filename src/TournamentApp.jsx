@@ -1375,10 +1375,25 @@ function MatchFormatPill({ format }) {
 }
 
 function statusPillTone(status, match) {
-  if (status.isFinal) return status.text.includes("Tied") ? "warn" : "final";
+  // Final tied match
+  if (status.isFinal && status.isTied) return "warn";
+
+  // Final winner: use winning team color
+  if (status.isFinal && status.leaderSideId) {
+    const winnerTeam = status.leaderSideId === match.sideA.id ? match.sideA.teamId : match.sideB.teamId;
+    return winnerTeam === "JC" ? "jcLead" : "sgLead";
+  }
+
+  // In progress tied
   if (status.isTied) return "neutral";
-  const leaderTeam = status.leaderSideId === match.sideA.id ? match.sideA.teamId : match.sideB.teamId;
-  return leaderTeam === "JC" ? "jcLead" : "sgLead";
+
+  // In progress leader
+  if (status.leaderSideId) {
+    const leaderTeam = status.leaderSideId === match.sideA.id ? match.sideA.teamId : match.sideB.teamId;
+    return leaderTeam === "JC" ? "jcLead" : "sgLead";
+  }
+
+  return "neutral";
 }
 
 function TournamentHeaderMark() {
